@@ -1,0 +1,15 @@
+node_modules/
+dist/
+coverage/
+.env*
+*.pem
+*.log
+*.tsbuildinfo
+.DS_Store
+__pycache__/
+*.pyc
+.venv/
+ml/data/
+ml/outputs/
+ml/models/
+ml/cache/
