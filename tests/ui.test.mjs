@@ -11,6 +11,13 @@ const { RoundResultScreen, FinalResultScreen } = await importTypeScriptModule(".
 const { ExploreScreen } = await importTypeScriptModule("../app/game/ExploreScreen.tsx");
 const { messages, translate, formatRoundSummary, loadLanguage, saveLanguage, LANGUAGE_STORAGE_KEY, LANGUAGES, LANGUAGE_OPTIONS } = await importTypeScriptModule("../app/i18n/messages.ts");
 const { formatShareResult } = await importTypeScriptModule("../app/game/share-game.ts");
+const { formatComplex } = await importTypeScriptModule("../app/game/formatting.ts");
+
+test("coordinate signs follow the displayed precision without negative zero", () => {
+  assert.equal(formatComplex({ re: -1e-16, im: -1e-16 }, 1), "0.000000 + 0.000000i");
+  assert.equal(formatComplex({ re: -0.75, im: -0.0000001 }, 1), "-0.750000 + 0.000000i");
+  assert.equal(formatComplex({ re: -0.75, im: -0.0000001 }, 10000), "-0.7500000000 − 0.0000001000i");
+});
 
 const noop = () => {};
 const common = { paletteId: "classic", onHome: noop, onMenu: noop, overlays: null };

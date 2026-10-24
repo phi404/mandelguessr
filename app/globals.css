@@ -356,6 +356,9 @@ summary::-webkit-details-marker { display: none; }
   .breakdown-footer { padding: 18px 24px; }
 }
 @media (pointer: coarse) { .icon-button { min-height: 44px; } .floating-window-titlebar button { min-width: 44px; } }
+@media (max-width: 760px), (pointer: coarse) {
+  .number-setting input, .language-select { font-size: 16px; }
+}
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
 
 .settings-block > h3 { margin: 0 0 14px; font-size: 13px; font-weight: 550; }

@@ -11,7 +11,8 @@ function formatCoordinate(value: number, zoom: number) {
 
 export function formatComplex(coordinate: ComplexCoordinate, zoom: number) {
   const imaginary = formatCoordinate(Math.abs(coordinate.im), zoom);
-  return `${formatCoordinate(coordinate.re, zoom)} ${coordinate.im < 0 ? "−" : "+"} ${imaginary}i`;
+  const sign = coordinate.im < 0 && Number(imaginary) !== 0 ? "−" : "+";
+  return `${formatCoordinate(coordinate.re, zoom)} ${sign} ${imaginary}i`;
 }
 
 function superscript(value: number) {

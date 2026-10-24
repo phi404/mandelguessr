@@ -9,6 +9,7 @@ test("static entry serves assets under the GitHub Pages project path", async () 
   const html = await readFile(new URL("../dist/index.html", import.meta.url), "utf8");
   assert.match(html, /<html lang="ja">/);
   assert.match(html, /<title>MandelGuessr<\/title>/);
+  assert.match(html, /<meta name="format-detection" content="telephone=no"\s*\/>/);
   assert.match(html, /https:\/\/phi404\.github\.io\/mandelguessr\//);
   assert.match(html, /href="\/mandelguessr\/mandelguessr\.svg"/);
   const assets = [...html.matchAll(/(?:src|href)="(\/mandelguessr\/assets\/[^"]+)"/g)];
