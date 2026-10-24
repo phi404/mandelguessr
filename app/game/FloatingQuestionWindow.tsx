@@ -2,25 +2,32 @@
 
 import {
   type PointerEvent as ReactPointerEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
   type RefObject,
   type ReactNode,
   useEffect,
+  useId,
   useRef,
   useState,
 } from "react";
 import { UiIcon } from "./UiIcon";
 import { useLanguage } from "../i18n/LanguageProvider";
+import {
+  WINDOW_ASPECT_RATIO,
+  constrainWindow,
+  initialWindow,
+  resizeWindow,
+  toggleWindowMinimized,
+  visibleWindowWidth,
+  windowWidthLimits,
+  type ResizeCorner,
+  type WindowBounds,
+  type WindowLayout,
+} from "./floating-window-layout";
 
-type WindowSize = "normal" | "large";
-
-type WindowLayout = {
-  x: number;
-  y: number;
-  width: number;
-  size: WindowSize;
-};
-
-type DragState = {
+type Gesture = {
+  kind: "move" | ResizeCorner;
+  pointerId: number;
   pointerX: number;
   pointerY: number;
   layout: WindowLayout;
@@ -33,64 +40,6 @@ type FloatingQuestionWindowProps = {
   bottomInset?: number;
 };
 
-const TITLEBAR_HEIGHT = 38;
-const ASPECT_RATIO = 8 / 5;
-const EDGE_GAP = 12;
-
-function preferredWidth(
-  size: WindowSize,
-  containerWidth: number,
-  containerHeight: number,
-  bottomInset: number,
-) {
-  const compact = containerWidth < 600;
-  const ratio = size === "large"
-    ? compact ? 0.9 : 0.64
-    : compact ? 0.58 : 0.34;
-  const cap = size === "large" ? 880 : 470;
-  const minimum = Math.min(compact ? 210 : 280, containerWidth - EDGE_GAP * 2);
-  const maximumByHeight =
-    Math.max(140, containerHeight - bottomInset - TITLEBAR_HEIGHT - EDGE_GAP * 2) *
-    ASPECT_RATIO;
-
-  return Math.max(
-    Math.min(180, minimum),
-    Math.min(
-      cap,
-      containerWidth - EDGE_GAP * 2,
-      maximumByHeight,
-      Math.max(minimum, containerWidth * ratio),
-    ),
-  );
-}
-
-function windowHeight(width: number) {
-  return TITLEBAR_HEIGHT + width / ASPECT_RATIO;
-}
-
-function clampLayout(
-  layout: WindowLayout,
-  containerWidth: number,
-  containerHeight: number,
-  bottomInset: number,
-): WindowLayout {
-  const width = preferredWidth(
-    layout.size,
-    containerWidth,
-    containerHeight,
-    bottomInset,
-  );
-  const height = windowHeight(width);
-  const maximumY = Math.max(0, containerHeight - bottomInset - height);
-
-  return {
-    ...layout,
-    width,
-    x: Math.max(0, Math.min(containerWidth - width, layout.x)),
-    y: Math.max(0, Math.min(maximumY, layout.y)),
-  };
-}
-
 export function FloatingQuestionWindow({
   containerRef,
   children,
@@ -98,179 +47,133 @@ export function FloatingQuestionWindow({
   bottomInset = 72,
 }: FloatingQuestionWindowProps) {
   const { t } = useLanguage();
-  const [layout, setLayout] = useState<WindowLayout>({
-    x: 0,
-    y: 0,
-    width: 420,
-    size: "normal",
-  });
+  const contentId = useId();
+  const [layout, setLayout] = useState<WindowLayout>({ x: 0, y: 0, width: 420, minimized: false });
+  const [bounds, setBounds] = useState<WindowBounds>({ width: 1200, height: 800, bottomInset });
   const initializedRef = useRef(false);
-  const dragRef = useRef<DragState | null>(null);
-  const readyFrameRef = useRef<number | null>(null);
+  const gestureRef = useRef<Gesture | null>(null);
   const [ready, setReady] = useState(false);
   const [dragging, setDragging] = useState(false);
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
-
-    const resizeObserver = new ResizeObserver(([entry]) => {
-      const { width: containerWidth, height: containerHeight } =
-        entry.contentRect;
-
-      setLayout((current) => {
-        if (!initializedRef.current) {
-          initializedRef.current = true;
-          const width = preferredWidth(
-            "normal",
-            containerWidth,
-            containerHeight,
-            bottomInset,
-          );
-          readyFrameRef.current = window.requestAnimationFrame(() => {
-            readyFrameRef.current = null;
-            setReady(true);
-          });
-          return clampLayout(
-            {
-              x: containerWidth - width - EDGE_GAP,
-              y:
-                containerHeight -
-                bottomInset -
-                windowHeight(width) -
-                EDGE_GAP,
-              width,
-              size: "normal",
-            },
-            containerWidth,
-            containerHeight,
-            bottomInset,
-          );
-        }
-
-        return clampLayout(
-          current,
-          containerWidth,
-          containerHeight,
-          bottomInset,
-        );
-      });
+    const observer = new ResizeObserver(([entry]) => {
+      const nextBounds = { width: entry.contentRect.width, height: entry.contentRect.height, bottomInset };
+      setBounds(nextBounds);
+      const firstLayout = !initializedRef.current;
+      initializedRef.current = true;
+      setLayout(current => firstLayout ? initialWindow(nextBounds) : constrainWindow(current, nextBounds));
+      setReady(true);
     });
-
-    resizeObserver.observe(container);
-    return () => {
-      resizeObserver.disconnect();
-      if (readyFrameRef.current !== null) {
-        window.cancelAnimationFrame(readyFrameRef.current);
-      }
-    };
+    observer.observe(container);
+    return () => observer.disconnect();
   }, [bottomInset, containerRef]);
 
-  const beginMove = (event: ReactPointerEvent<HTMLElement>) => {
-    if (event.button !== 0) return;
+  const currentBounds = (): WindowBounds => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    return rect ? { width: rect.width, height: rect.height, bottomInset } : bounds;
+  };
+
+  const beginGesture = (event: ReactPointerEvent<HTMLElement>, kind: Gesture["kind"]) => {
+    if (event.button !== 0 || gestureRef.current) return;
+    event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
-    dragRef.current = {
-      pointerX: event.clientX,
-      pointerY: event.clientY,
-      layout,
-    };
+    gestureRef.current = { kind, pointerId: event.pointerId, pointerX: event.clientX, pointerY: event.clientY, layout };
     setDragging(true);
   };
 
-  const continueMove = (event: ReactPointerEvent<HTMLElement>) => {
-    const drag = dragRef.current;
-    const container = containerRef.current;
-    if (!drag || !container) return;
-
-    const { width, height } = container.getBoundingClientRect();
-    setLayout(
-      clampLayout(
-        {
-          ...drag.layout,
-          x: drag.layout.x + event.clientX - drag.pointerX,
-          y: drag.layout.y + event.clientY - drag.pointerY,
-        },
-        width,
-        height,
-        bottomInset,
-      ),
-    );
-  };
-
-  const endMove = (event: ReactPointerEvent<HTMLElement>) => {
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
+  const continueGesture = (event: ReactPointerEvent<HTMLElement>) => {
+    const gesture = gestureRef.current;
+    if (!gesture || gesture.pointerId !== event.pointerId) return;
+    const dx = event.clientX - gesture.pointerX;
+    const dy = event.clientY - gesture.pointerY;
+    const nextBounds = currentBounds();
+    if (gesture.kind === "move") {
+      setLayout(constrainWindow({ ...gesture.layout, x: gesture.layout.x + dx, y: gesture.layout.y + dy }, nextBounds));
+    } else {
+      // Project onto the image diagonal to preserve the target's aspect ratio.
+      const delta = (dx + dy / WINDOW_ASPECT_RATIO) / (1 + 1 / WINDOW_ASPECT_RATIO ** 2);
+      const width = gesture.layout.width + (gesture.kind === "top-left" ? -delta : delta);
+      setLayout(resizeWindow(gesture.layout, width, nextBounds, gesture.kind));
     }
-    dragRef.current = null;
+  };
+
+  const endGesture = (event: ReactPointerEvent<HTMLElement>) => {
+    if (gestureRef.current?.pointerId !== event.pointerId) return;
+    gestureRef.current = null;
     setDragging(false);
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
   };
 
-  const toggleSize = () => {
-    const container = containerRef.current;
-    if (!container) return;
-    const { width: containerWidth, height: containerHeight } =
-      container.getBoundingClientRect();
-
-    setLayout((current) => {
-      const currentWidth = current.width;
-      const nextSize: WindowSize = current.size === "normal" ? "large" : "normal";
-      const nextWidth = preferredWidth(
-        nextSize,
-        containerWidth,
-        containerHeight,
-        bottomInset,
-      );
-
-      return clampLayout(
-        {
-          x: current.x + currentWidth - nextWidth,
-          y:
-            current.y +
-            windowHeight(currentWidth) -
-            windowHeight(nextWidth),
-          width: nextWidth,
-          size: nextSize,
-        },
-        containerWidth,
-        containerHeight,
-        bottomInset,
-      );
-    });
+  const handleResizeStart = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const corner = event.currentTarget.dataset.corner as ResizeCorner;
+    event.currentTarget.focus();
+    beginGesture(event, corner);
   };
 
-  const expanded = layout.size === "large";
+  const handleResizeKey = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    const corner = event.currentTarget.dataset.corner as ResizeCorner;
+    const nextBounds = currentBounds();
+    const limits = windowWidthLimits(nextBounds);
+    const step = event.shiftKey ? 32 : 8;
+    const width = event.key === "Home" ? limits.minimum : event.key === "End" ? limits.maximum
+      : event.key === "ArrowRight" || event.key === "ArrowUp" ? layout.width + step
+      : event.key === "ArrowLeft" || event.key === "ArrowDown" ? layout.width - step : null;
+    if (width === null) return;
+    event.preventDefault();
+    setLayout(current => resizeWindow(current, width, nextBounds, corner));
+  };
 
+  const { minimum, maximum } = windowWidthLimits(bounds);
   return (
     <section
-      className={`floating-question-window ${expanded ? "is-large" : "is-normal"}${ready ? " is-ready" : ""}${dragging ? " is-dragging" : ""}`}
-      style={{ left: layout.x, top: layout.y, width: layout.width }}
+      className={`floating-question-window${layout.minimized ? " is-minimized" : ""}${ready ? " is-ready" : ""}${dragging ? " is-dragging" : ""}`}
+      style={{ left: layout.x, top: layout.y, width: visibleWindowWidth(layout) }}
       aria-label={t("targetWindow")}
     >
       <header
         className="floating-window-titlebar"
-        onPointerDown={(event) => {
-          if ((event.target as HTMLElement).closest("button")) return;
-          beginMove(event);
-        }}
-        onPointerMove={continueMove}
-        onPointerUp={endMove}
-        onPointerCancel={endMove}
-        onDoubleClick={toggleSize}
+        onPointerDown={event => { if (!(event.target as HTMLElement).closest("button")) beginGesture(event, "move"); }}
+        onPointerMove={continueGesture}
+        onPointerUp={endGesture}
+        onPointerCancel={endGesture}
+        onLostPointerCapture={endGesture}
       >
-        <div className="floating-window-caption">
-          {meta && <strong>{meta}</strong>}
-        </div>
+        <div className="floating-window-caption">{meta && <strong>{meta}</strong>}</div>
         <button
           type="button"
-          onClick={toggleSize}
-          aria-label={expanded ? t("restoreTarget") : t("expandTarget")}
-          title={expanded ? t("restoreSize") : t("expand")}
+          onClick={() => setLayout(current => toggleWindowMinimized(current, currentBounds()))}
+          aria-label={layout.minimized ? t("restoreTarget") : t("minimizeTarget")}
+          title={layout.minimized ? t("restoreTarget") : t("minimizeTarget")}
+          aria-expanded={!layout.minimized}
+          aria-controls={contentId}
         >
-          <UiIcon name={expanded ? "collapse" : "expand"} />
+          <UiIcon name={layout.minimized ? "expand" : "minimize"} />
         </button>
       </header>
-
-      <div className="floating-window-content">{children}</div>
+      <div className="floating-window-content" id={contentId} hidden={layout.minimized}>{children}</div>
+      {!layout.minimized && (["top-left", "bottom-right"] as const).map(corner => (
+        <div
+          key={corner}
+          data-corner={corner}
+          className={`window-resize-handle resize-${corner}`}
+          role="slider"
+          tabIndex={0}
+          aria-label={t("resizeTarget")}
+          aria-valuemin={Math.round(minimum)}
+          aria-valuemax={Math.round(maximum)}
+          aria-valuenow={Math.round(layout.width)}
+          aria-controls={contentId}
+          title={t("resizeTarget")}
+          onPointerDown={handleResizeStart}
+          onPointerMove={continueGesture}
+          onPointerUp={endGesture}
+          onPointerCancel={endGesture}
+          onLostPointerCapture={endGesture}
+          onKeyDown={handleResizeKey}
+        ><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 13V4h9M4 4l9 9" /></svg></div>
+      ))}
     </section>
   );
 }

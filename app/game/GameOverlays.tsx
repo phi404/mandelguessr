@@ -22,7 +22,7 @@ function useDialogFocus(open: boolean) {
     const previousFocus = document.activeElement instanceof HTMLElement
       ? document.activeElement : null;
     const focusable = () => Array.from(dialog.querySelectorAll<HTMLElement>(
-      'button:not(:disabled), a[href], input:not(:disabled), summary, [tabindex="0"]',
+      'button:not(:disabled), a[href], input:not(:disabled), select:not(:disabled), summary, [tabindex="0"]',
     )).filter((element) => element.getClientRects().length > 0);
     focusable()[0]?.focus();
     const trapFocus = (event: KeyboardEvent) => {
@@ -228,6 +228,37 @@ export function InformationDialog({
         </header>
         <div className="information-sections">
           <details className="info-section" open>
+            <summary><UiIcon name="compass" />{t("mandelbrot")}<UiIcon name="chevron" /></summary>
+            <div className="mandelbrot-guide">
+              <section>
+                <h3>{t("mandelbrotShapeTitle")}</h3>
+                <p>{t("mandelbrotAppearance")}</p>
+              </section>
+              <section>
+                <h3>{t("mandelbrotFractalTitle")}</h3>
+                <p>{t("mandelbrotFractal")}</p>
+                <p>{t("mandelbrotSimilarity")}</p>
+              </section>
+              <section>
+                <h3>{t("mandelbrotRuleTitle")}</h3>
+                <p>{t("mandelbrotPlane")}</p>
+                <p>{t("mandelbrotIteration")}</p>
+                <p className="mandelbrot-equation"><code>z₀ = 0, zₙ₊₁ = zₙ² + c</code></p>
+                <p>{t("mandelbrotDefinition")}</p>
+                <dl className="mandelbrot-examples">
+                  <div><dt><code>c = 0</code></dt><dd>{t("exampleZero")}</dd></div>
+                  <div><dt><code>c = −1</code></dt><dd>{t("exampleMinusOne")}</dd></div>
+                  <div><dt><code>c = 1</code></dt><dd>{t("exampleOne")}</dd></div>
+                </dl>
+              </section>
+              <section>
+                <h3>{t("mandelbrotColorsTitle")}</h3>
+                <p>{t("mandelbrotColors")}</p>
+              </section>
+              <p className="guide-reference">{t("furtherReading")}: <a href="https://plus.maths.org/unveiling-mandelbrot-set" target="_blank" rel="noreferrer">Robert Devaney — Unveiling the Mandelbrot set</a></p>
+            </div>
+          </details>
+          <details className="info-section">
             <summary><UiIcon name="play" />{t("howToPlay")}<UiIcon name="chevron" /></summary>
             <p>{t("howToPlayText")}</p>
             <p>{t("distanceExplanation")}</p>
@@ -242,20 +273,6 @@ export function InformationDialog({
               <div><dt>{t("targetCaption")}</dt><dd>{t("windowControl")}</dd></div>
               <div><dt>{t("gameSettings")}</dt><dd>{t("rulesControl")}</dd></div>
             </dl>
-          </details>
-          <details className="info-section">
-            <summary><UiIcon name="compass" />{t("mandelbrot")}<UiIcon name="chevron" /></summary>
-            <p>{t("mandelbrotPlane")}</p>
-            <p>{t("mandelbrotIteration")}</p>
-            <p className="mandelbrot-equation"><code>z₀ = 0, zₙ₊₁ = zₙ² + c</code></p>
-            <p>{t("mandelbrotDefinition")}</p>
-            <dl className="mandelbrot-examples">
-              <div><dt><code>c = 0</code></dt><dd>{t("exampleZero")}</dd></div>
-              <div><dt><code>c = −1</code></dt><dd>{t("exampleMinusOne")}</dd></div>
-              <div><dt><code>c = 1</code></dt><dd>{t("exampleOne")}</dd></div>
-            </dl>
-            <p>{t("mandelbrotColors")}</p>
-            <p>{t("mandelbrotDetail")}</p>
           </details>
           <details className="info-section">
             <summary><UiIcon name="info" />{t("credits")}<UiIcon name="chevron" /></summary>

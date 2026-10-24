@@ -40,9 +40,11 @@ const RESULT_INTERACTION: ViewportInteraction = {
 function ResultMap({
   record,
   paletteId,
+  reveal = false,
 }: {
   record: RoundRecord;
   paletteId: MandelbrotPaletteId;
+  reveal?: boolean;
 }) {
   const { t } = useLanguage();
   const viewportRef = useRef<FractalViewportHandle>(null);
@@ -77,7 +79,7 @@ function ResultMap({
   }, [record, target, view]);
 
   return (
-    <div className="result-map">
+    <div className={`result-map${reveal ? " is-revealing" : ""}`}>
       <FractalViewport
         ref={viewportRef}
         initialCamera={camera}
@@ -147,12 +149,12 @@ export function RoundResultScreen({
     <main className="game-prototype result-scene screen-enter">
       <GameHeader label={t("roundProgress", { current: roundIndex + 1, total: totalRounds })} onHome={onHome} onMenu={onMenu} />
       <section className="result-stage">
-        <div className="result-map-column"><ResultMap record={record} paletteId={paletteId} /></div>
+        <div className="result-map-column"><ResultMap key={record.question.id} record={record} paletteId={paletteId} reveal /></div>
         <aside className="round-result-card">
           <header className="result-heading"><h2>{t("roundResult")}</h2></header>
-          <ResultDetails record={record} />
           <p className="result-score"><span>{t("roundScore")}</span><strong>{number(record.score.points)}</strong><span>/ {number(MAX_ROUND_SCORE)}</span></p>
           <div className="score-meter" aria-hidden="true"><span style={{ width: `${record.score.points / MAX_ROUND_SCORE * 100}%` }} /></div>
+          <ResultDetails record={record} />
           {debug && (
             <div className="round-feedback" aria-label={t("targetFeedback")}>
               <span>{t("targetQuality")}</span>
@@ -207,17 +209,17 @@ export function FinalResultScreen({
       <section className="breakdown-stage">
         <aside className="breakdown-panel">
           <header className="breakdown-title">
-            <span title={t("meanDistanceHelp")}>{t("averageDistance")}</span>
-            <h2 className="mean-distance">{formatCoordinateDistance(meanDistance)}</h2>
-            <p className="total-score">{t("totalScore")} <strong>{number(totalScore)}</strong> / {number(MAX_ROUND_SCORE * records.length)}</p>
+            <span>{t("totalScore")}</span>
+            <h2 className="total-score">{number(totalScore)}<small>/ {number(MAX_ROUND_SCORE * records.length)}</small></h2>
             <p>{t("averageScore")} {number(averageScore)}</p>
             <div className="score-meter" aria-hidden="true"><span style={{ width: `${totalScore / (MAX_ROUND_SCORE * records.length) * 100}%` }} /></div>
+            <p className="mean-distance" title={t("meanDistanceHelp")}>{t("averageDistance")} <strong>{formatCoordinateDistance(meanDistance)}</strong></p>
             <details className="game-summary"><summary>{t("gameDetails")}<UiIcon name="chevron" /></summary><small>{rulesSummary(gameRules, language)}</small></details>
           </header>
           <div className="round-list" role="list">
             {records.map((record, index) => (
               <button key={record.question.id} className={index === selectedBreakdown ? "is-selected" : ""} type="button" onClick={() => onSelectRound(index)} aria-pressed={index === selectedBreakdown}>
-                <span>{t("roundLabel", { round: index + 1 })}</span><strong>{formatCoordinateDistance(record.score.coordinateDistance)}</strong>
+                <span>{t("roundLabel", { round: index + 1 })}</span><strong>{number(record.score.points)}</strong>
               </button>
             ))}
           </div>

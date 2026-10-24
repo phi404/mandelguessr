@@ -50,9 +50,8 @@ export function ExploreScreen({
           <FractalViewport ref={viewportRef} initialCamera={INITIAL_CAMERA} interaction={EXPLORE_INTERACTION} zoomLimits={zoomLimits} paletteId={paletteId} ariaLabel={t("exploreMap")} onViewChange={onViewChange} />
           <div className="exploration-hud" title={view && center ? formatComplex(center, view.zoom) : undefined}><UiIcon name="zoom" /><strong>{view ? `×${formatZoom(view.zoom)}` : "×1"}</strong></div>
           <button className="icon-button map-reset" type="button" onClick={() => viewportRef.current?.reset()} aria-label={t("resetMap")} title={t("overview")}><UiIcon name="reset" /></button>
-          <div className="explore-center" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v5m0 8v5M3 12h5m8 0h5"/><circle cx="12" cy="12" r="1.5"/></svg></div>
           <footer className="explore-controls">
-            <output className="explore-coordinate" aria-label={t("centerCoordinates")}><span>{t("center")}</span><code>{formatComplex(center, view?.zoom ?? 1)}</code></output>
+            <output className="explore-coordinate" aria-label={t("centerCoordinates")}><code>{formatComplex(center, view?.zoom ?? 1)}</code></output>
             <div className="explore-hints"><span><UiIcon name="move" />{t("drag")}</span><span><UiIcon name="zoom" />{t("wheelPinch")}</span></div>
           </footer>
         </article>

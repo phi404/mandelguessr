@@ -58,8 +58,6 @@ export function HomeScreen({
         </div>
         <div className="home-panel">
           <h1 id="home-title">MandelGuessr</h1>
-          <p>{t("homeDescription")}</p>
-          <p className="home-instructions">{t("homeInstructions")}</p>
           <div className="home-actions">
             <button className="primary-action" type="button" onClick={onPlay} title={t("startGame")}><UiIcon name="play" /><span>{t("play")}</span></button>
             <button className="secondary-action" type="button" onClick={onExplore} title={t("freeExplore")}><UiIcon name="compass" /><span>{t("explore")}</span></button>

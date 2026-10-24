@@ -18,12 +18,12 @@ function render(Component, language, props) {
   return renderToStaticMarkup(createElement(LanguageProvider, { initialLanguage: language }, createElement(Component, props)));
 }
 
-test("both languages render the title, factual home description, and navigation", () => {
+test("all languages keep a title-only home with the original navigation", () => {
   for (const language of LANGUAGES) {
     const html = render(HomeScreen, language, { ...common, onPlay: noop, onExplore: noop });
     assert.match(html, /<h1 id="home-title">MandelGuessr<\/h1>/);
-    assert.ok(html.includes(messages[language].homeDescription));
-    assert.ok(html.includes(messages[language].homeInstructions));
+    assert.ok(!html.includes(messages[language].homeDescription));
+    assert.doesNotMatch(html, /<p[ >]/);
     assert.ok(html.includes(`aria-label="${messages[language].menu}"`));
     assert.match(html, /src="\/mandelguessr\/mandelguessr.svg"/);
     assert.doesNotMatch(html, /この景色は|どこにある|MANDELBROT<\/figcaption>/);
@@ -38,7 +38,7 @@ function record(distance, id = "round", magnification = 30) {
   };
 }
 
-test("round results expose raw distance and both coordinates without a disclosure", () => {
+test("round results lead with score and expose raw distance and both coordinates", () => {
   for (const language of LANGUAGES) {
     const html = render(RoundResultScreen, language, {
       ...common, record: record(0.25), roundIndex: 0, totalRounds: 2,
@@ -48,11 +48,13 @@ test("round results expose raw distance and both coordinates without a disclosur
     assert.match(html, /<dd>-0\.5000000 \+ 0\.1250000i<\/dd>/);
     assert.match(html, /<dd>-0\.7500000 \+ 0\.1250000i<\/dd>/);
     assert.ok(html.includes(messages[language].distanceError));
+    assert.ok(html.indexOf('class="result-score"') < html.indexOf('class="result-metrics"'));
+    assert.match(html, /class="result-map is-revealing"/);
     assert.doesNotMatch(html, /9876|画像対角線|screen diagonal|<details class="result-coordinates"/);
   }
 });
 
-test("total results average coordinate distances across different magnifications", () => {
+test("total results lead with score and keep mean coordinate distance secondary", () => {
   const records = [record(0.25, "a", 30), record(0.75, "b", 10000)];
   for (const language of LANGUAGES) {
     const html = render(FinalResultScreen, language, {
@@ -60,7 +62,10 @@ test("total results average coordinate distances across different magnifications
       gameRules: { magnification: 30, roundCount: 2, questionPanAllowed: false, questionInspectAllowed: false },
       onSelectRound: noop, onPlayAgain: noop, onShare: noop, onNewGame: noop, shareDialog: null,
     });
-    assert.match(html, /<h2 class="mean-distance">0\.5<\/h2>/);
+    assert.match(html, /<h2 class="total-score">/);
+    assert.match(html, /class="mean-distance"[^>]*>[^<]*<strong>0\.5<\/strong>/);
+    assert.ok(html.indexOf('class="total-score"') < html.indexOf('class="mean-distance"'));
+    assert.doesNotMatch(html, /is-revealing/);
     assert.ok(html.includes(messages[language].averageDistance));
     assert.ok(html.includes((4000).toLocaleString(language)));
     assert.match(html, /<dd>-0\.5000000 \+ 0\.1250000i<\/dd>/);
@@ -68,7 +73,7 @@ test("total results average coordinate distances across different magnifications
   }
 });
 
-test("settings retain both native language names and the guide explains boundedness", () => {
+test("settings keep native language names and the guide introduces shape before its definition", () => {
   for (const language of LANGUAGES) {
     const settings = render(SettingsDialog, language, {
       open: true, settings: { paletteId: "classic" }, onPalette: noop, onClose: noop, onMenu: noop,
@@ -80,9 +85,12 @@ test("settings retain both native language names and the guide explains boundedn
     assert.ok(settings.includes(messages[language].language));
     for (const option of LANGUAGE_OPTIONS) assert.ok(settings.includes(`value="${option.value}"`));
     const guide = render(InformationDialog, language, { open: true, debug: false, sampleCount: 0, onClose: noop, onMenu: noop, onClearData: noop });
-    for (const key of ["mandelbrotPlane", "mandelbrotDefinition", "exampleZero", "exampleMinusOne", "exampleOne", "mandelbrotColors"]) {
+    for (const key of ["mandelbrotAppearance", "mandelbrotFractal", "mandelbrotSimilarity", "mandelbrotPlane", "mandelbrotDefinition", "exampleZero", "exampleMinusOne", "exampleOne", "mandelbrotColors"]) {
       assert.ok(guide.includes(messages[language][key]), key);
     }
+    assert.ok(guide.indexOf(messages[language].mandelbrotAppearance) < guide.indexOf(messages[language].mandelbrotFractal));
+    assert.ok(guide.indexOf(messages[language].mandelbrotFractal) < guide.indexOf(messages[language].mandelbrotDefinition));
+    assert.ok(guide.indexOf(messages[language].mandelbrotDefinition) < guide.indexOf(messages[language].mandelbrotColors));
   }
 });
 
@@ -93,6 +101,7 @@ test("exploration coordinates use the current view center at high zoom", () => {
   });
   assert.match(html, /Coordinates at the center of the view/);
   assert.match(html, /-0\.7436438870 \+ 0\.1318259040i/);
+  assert.doesNotMatch(html, /class="explore-center"|>Center</);
 });
 
 test("language choice survives reload and tolerates unavailable or invalid storage", () => {
