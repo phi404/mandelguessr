@@ -9,6 +9,7 @@ import {
   useState,
 } from "react";
 import { UiIcon } from "./UiIcon";
+import { useLanguage } from "../i18n/LanguageProvider";
 
 type WindowSize = "normal" | "large";
 
@@ -96,6 +97,7 @@ export function FloatingQuestionWindow({
   meta,
   bottomInset = 72,
 }: FloatingQuestionWindowProps) {
+  const { t } = useLanguage();
   const [layout, setLayout] = useState<WindowLayout>({
     x: 0,
     y: 0,
@@ -242,7 +244,7 @@ export function FloatingQuestionWindow({
     <section
       className={`floating-question-window ${expanded ? "is-large" : "is-normal"}${ready ? " is-ready" : ""}${dragging ? " is-dragging" : ""}`}
       style={{ left: layout.x, top: layout.y, width: layout.width }}
-      aria-label="ターゲット画像"
+      aria-label={t("targetWindow")}
     >
       <header
         className="floating-window-titlebar"
@@ -261,8 +263,8 @@ export function FloatingQuestionWindow({
         <button
           type="button"
           onClick={toggleSize}
-          aria-label={expanded ? "ターゲットウィンドウを通常サイズに戻す" : "ターゲットウィンドウを拡大"}
-          title={expanded ? "通常サイズに戻す" : "拡大する"}
+          aria-label={expanded ? t("restoreTarget") : t("expandTarget")}
+          title={expanded ? t("restoreSize") : t("expand")}
         >
           <UiIcon name={expanded ? "collapse" : "expand"} />
         </button>

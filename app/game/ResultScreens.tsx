@@ -29,6 +29,7 @@ import type { QuestionFeedback } from "./playtest-data";
 import { clipSegmentToViewport, fitResultCamera } from "./result-map";
 import { MAX_ROUND_SCORE } from "./score-guess";
 import { UiIcon } from "./UiIcon";
+import { useLanguage } from "../i18n/LanguageProvider";
 
 const RESULT_INTERACTION: ViewportInteraction = {
   pan: true,
@@ -43,6 +44,7 @@ function ResultMap({
   record: RoundRecord;
   paletteId: MandelbrotPaletteId;
 }) {
+  const { t } = useLanguage();
   const viewportRef = useRef<FractalViewportHandle>(null);
   const fittedRecordRef = useRef<string | null>(null);
   const [view, setView] = useState<ViewSnapshot | null>(null);
@@ -82,7 +84,7 @@ function ResultMap({
         interaction={RESULT_INTERACTION}
         zoomLimits={zoomLimits}
         paletteId={paletteId}
-        ariaLabel="GUESSとTARGETを示す結果マップ"
+        ariaLabel={t("resultMap")}
         onViewChange={setView}
       />
       {connection && (
@@ -90,26 +92,25 @@ function ResultMap({
           <line x1={connection.start.x * 100} y1={connection.start.y * 100} x2={connection.end.x * 100} y2={connection.end.y * 100} />
         </svg>
       )}
-      <MapMarker kind="guess" marker={guessMarker} label="GUESS" />
-      <MapMarker kind="answer" marker={targetMarker} label="TARGET" />
+      <MapMarker kind="guess" marker={guessMarker} label={t("guess")} />
+      <MapMarker kind="answer" marker={targetMarker} label={t("target")} />
       {view && <div className="result-map-scale">×{formatZoom(view.zoom)}</div>}
     </div>
   );
 }
 
 function ResultDetails({ record }: { record: RoundRecord }) {
+  const { t } = useLanguage();
   const target = targetOf(record.question);
   return (
     <div className="result-metrics">
-      <p className="result-distance"><span title="出題画像の対角線を1とした、推測地点と正解地点の距離">誤差</span><strong>{record.score.normalizedDistance.toLocaleString("ja-JP", { maximumFractionDigits: 3 })}<small> 画像対角線</small></strong></p>
-      <details className="result-coordinates">
-        <summary>座標<UiIcon name="chevron" /></summary>
+      <p className="result-distance"><span title={t("distanceHelp")}>{t("distanceError")}</span><strong>{formatCoordinateDistance(record.score.coordinateDistance)}</strong></p>
+      <section className="result-coordinates" aria-label={t("coordinates")}>
         <dl className="coordinate-comparison">
-          <div><dt><i className="marker-key guess-key" />GUESS</dt><dd>{formatComplex(record.guess, record.question.magnification)}</dd></div>
-          <div><dt><i className="marker-key answer-key" />TARGET</dt><dd>{formatComplex(target, record.question.magnification)}</dd></div>
+          <div><dt><i className="marker-key guess-key" />{t("guess")}</dt><dd>{formatComplex(record.guess, record.question.magnification)}</dd></div>
+          <div><dt><i className="marker-key answer-key" />{t("target")}</dt><dd>{formatComplex(target, record.question.magnification)}</dd></div>
         </dl>
-        <p className="coordinate-distance">距離 {formatCoordinateDistance(record.score.coordinateDistance)}</p>
-      </details>
+      </section>
     </div>
   );
 }
@@ -141,23 +142,24 @@ export function RoundResultScreen({
   onMenu: () => void;
   overlays: ReactNode;
 }) {
+  const { t, number } = useLanguage();
   return (
     <main className="game-prototype result-scene screen-enter">
-      <GameHeader label={`ROUND ${roundIndex + 1} / ${totalRounds}`} onHome={onHome} onMenu={onMenu} />
+      <GameHeader label={t("roundProgress", { current: roundIndex + 1, total: totalRounds })} onHome={onHome} onMenu={onMenu} />
       <section className="result-stage">
         <div className="result-map-column"><ResultMap record={record} paletteId={paletteId} /></div>
         <aside className="round-result-card">
-          <header className="result-heading"><span>ROUND SCORE</span></header>
-          <p className="result-score"><strong>{record.score.points.toLocaleString()}</strong><span>/ {MAX_ROUND_SCORE.toLocaleString()}</span></p>
-          <div className="score-meter" aria-hidden="true"><span style={{ width: `${record.score.points / MAX_ROUND_SCORE * 100}%` }} /></div>
+          <header className="result-heading"><h2>{t("roundResult")}</h2></header>
           <ResultDetails record={record} />
+          <p className="result-score"><span>{t("roundScore")}</span><strong>{number(record.score.points)}</strong><span>/ {number(MAX_ROUND_SCORE)}</span></p>
+          <div className="score-meter" aria-hidden="true"><span style={{ width: `${record.score.points / MAX_ROUND_SCORE * 100}%` }} /></div>
           {debug && (
-            <div className="round-feedback" aria-label="ターゲットの評価">
-              <span>ターゲットの質</span>
-              <div>{([ ["good", "良問"], ["too-hard", "難しすぎる"], ["poor-frame", "表示不良"] ] as const).map(([value, label]) => <button key={value} type="button" aria-pressed={feedback === value} onClick={() => onFeedback(value)}>{label}</button>)}</div>
+            <div className="round-feedback" aria-label={t("targetFeedback")}>
+              <span>{t("targetQuality")}</span>
+              <div>{([ ["good", t("goodQuestion")], ["too-hard", t("tooHard")], ["poor-frame", t("poorFrame")] ] as const).map(([value, label]) => <button key={value} type="button" aria-pressed={feedback === value} onClick={() => onFeedback(value)}>{label}</button>)}</div>
             </div>
           )}
-          <button className="primary-action" type="button" onClick={onContinue}>{isLastRound ? "RESULT" : "NEXT ROUND"}<UiIcon name="arrow" /></button>
+          <button className="primary-action" type="button" onClick={onContinue}>{isLastRound ? t("result") : t("nextRound")}<UiIcon name="arrow" /></button>
         </aside>
       </section>
       {overlays}
@@ -196,36 +198,39 @@ export function FinalResultScreen({
   overlays: ReactNode;
   shareDialog: ReactNode;
 }) {
+  const { t, number, language } = useLanguage();
+  const meanDistance = records.length ? records.reduce((sum, record) => sum + record.score.coordinateDistance, 0) / records.length : 0;
   const selectedRecord = records[selectedBreakdown] ?? records[0];
   return (
     <main className="game-prototype breakdown-scene screen-enter">
-      <GameHeader label="RESULT" onHome={onHome} onMenu={onMenu} />
+      <GameHeader label={t("result")} onHome={onHome} onMenu={onMenu} />
       <section className="breakdown-stage">
         <aside className="breakdown-panel">
           <header className="breakdown-title">
-            <span>TOTAL SCORE</span>
-            <h2>{totalScore.toLocaleString()}</h2>
-            <p>/ {(MAX_ROUND_SCORE * records.length).toLocaleString()}</p>
+            <span title={t("meanDistanceHelp")}>{t("averageDistance")}</span>
+            <h2 className="mean-distance">{formatCoordinateDistance(meanDistance)}</h2>
+            <p className="total-score">{t("totalScore")} <strong>{number(totalScore)}</strong> / {number(MAX_ROUND_SCORE * records.length)}</p>
+            <p>{t("averageScore")} {number(averageScore)}</p>
             <div className="score-meter" aria-hidden="true"><span style={{ width: `${totalScore / (MAX_ROUND_SCORE * records.length) * 100}%` }} /></div>
-            <details className="game-summary"><summary>ゲーム情報<UiIcon name="chevron" /></summary><small>{rulesSummary(gameRules)}</small><strong>AVG {averageScore.toLocaleString()}</strong></details>
+            <details className="game-summary"><summary>{t("gameDetails")}<UiIcon name="chevron" /></summary><small>{rulesSummary(gameRules, language)}</small></details>
           </header>
           <div className="round-list" role="list">
             {records.map((record, index) => (
               <button key={record.question.id} className={index === selectedBreakdown ? "is-selected" : ""} type="button" onClick={() => onSelectRound(index)} aria-pressed={index === selectedBreakdown}>
-                <span>ROUND {index + 1}</span><strong>{record.score.points.toLocaleString()}</strong>
+                <span>{t("roundLabel", { round: index + 1 })}</span><strong>{formatCoordinateDistance(record.score.coordinateDistance)}</strong>
               </button>
             ))}
           </div>
           <div className="breakdown-actions breakdown-footer">
-            <button className="primary-action" type="button" onClick={onPlayAgain}><UiIcon name="play" />PLAY AGAIN</button>
-            <button className="icon-button share-result-button" type="button" onClick={onShare} aria-label="結果を共有" title="結果を共有"><UiIcon name="share" /></button>
-            <button className="secondary-action breakdown-new-game" type="button" onClick={onNewGame}>NEW GAME</button>
+            <button className="primary-action" type="button" onClick={onPlayAgain}><UiIcon name="play" />{t("playAgain")}</button>
+            <button className="icon-button share-result-button" type="button" onClick={onShare} aria-label={t("shareResult")} title={t("shareResult")}><UiIcon name="share" /></button>
+            <button className="secondary-action breakdown-new-game" type="button" onClick={onNewGame}>{t("newGame")}</button>
           </div>
         </aside>
         <div className="breakdown-detail" key={selectedRecord.question.id}>
           <div className="breakdown-map"><ResultMap record={selectedRecord} paletteId={paletteId} /></div>
           <section className="selected-round-detail">
-            <header><span>ROUND {selectedBreakdown + 1}</span><strong>{selectedRecord.score.points.toLocaleString()} / {MAX_ROUND_SCORE.toLocaleString()}</strong></header>
+            <header><span>{t("roundLabel", { round: selectedBreakdown + 1 })}</span><strong>{t("roundScore")} {number(selectedRecord.score.points)} / {number(MAX_ROUND_SCORE)}</strong></header>
             <ResultDetails record={selectedRecord} />
           </section>
         </div>

@@ -1,4 +1,5 @@
 import type { ReactNode, RefObject } from "react";
+import { useLanguage } from "../i18n/LanguageProvider";
 import {
   FractalViewport,
   type FractalViewportHandle,
@@ -79,24 +80,25 @@ export function PlayScreen({
   onMenu: () => void;
   overlays: ReactNode;
 }) {
+  const { t } = useLanguage();
   const mapCenter = mapView
     ? { re: mapView.centerRe, im: mapView.centerIm }
     : null;
   const target = targetOf(question);
   const questionMeta = questionView && gameRules.questionInspectAllowed
     && Math.abs(questionView.zoom - gameRules.magnification) > gameRules.magnification * 1e-4
-    ? `TARGET ×${gameRules.magnification} → ×${formatZoom(questionView.zoom)}`
-    : `TARGET ×${gameRules.magnification}`;
+    ? `${t("targetCaption")} ×${gameRules.magnification} → ×${formatZoom(questionView.zoom)}`
+    : `${t("targetCaption")} ×${gameRules.magnification}`;
 
   return (
     <main className="game-prototype play-scene screen-enter">
-      <GameHeader label={`ROUND ${roundIndex + 1} / ${totalRounds}`} onHome={onHome} onMenu={onMenu} />
+      <GameHeader label={t("roundProgress", { current: roundIndex + 1, total: totalRounds })} onHome={onHome} onMenu={onMenu} />
       <section className="exploration-stage">
         <article className="exploration-frame" ref={playStageRef}>
-          <FractalViewport key={`map-${question.id}`} ref={mapRef} initialCamera={INITIAL_CAMERA} interaction={MAP_INTERACTION} zoomLimits={explorationZoomLimits} paletteId={paletteId} ariaLabel="推測地点を選択するマンデルブロ集合の探索マップ" onViewChange={onMapViewChange} onSelect={onGuess} />
+          <FractalViewport key={`map-${question.id}`} ref={mapRef} initialCamera={INITIAL_CAMERA} interaction={MAP_INTERACTION} zoomLimits={explorationZoomLimits} paletteId={paletteId} ariaLabel={t("guessMap")} onViewChange={onMapViewChange} onSelect={onGuess} />
           <div className="map-marker-layer"><MapMarker kind="guess" marker={guessMarker} /></div>
           <div className="exploration-hud" title={mapView && mapCenter ? formatComplex(mapCenter, mapView.zoom) : undefined}><UiIcon name="zoom" /><strong>{mapView ? `×${formatZoom(mapView.zoom)}` : "×1"}</strong></div>
-          <button className="icon-button map-reset" type="button" onClick={() => mapRef.current?.reset()} aria-label="探索マップを全体表示へ戻す" title="全体表示"><UiIcon name="reset" /></button>
+          <button className="icon-button map-reset" type="button" onClick={() => mapRef.current?.reset()} aria-label={t("resetMap")} title={t("overview")}><UiIcon name="reset" /></button>
           <FloatingQuestionWindow containerRef={playStageRef} meta={questionMeta}>
             <FractalViewport
               key={`question-${question.id}`}
@@ -106,15 +108,15 @@ export function PlayScreen({
               zoomLimits={questionZoomLimits}
               fixedCenter={!gameRules.questionPanAllowed && gameRules.questionInspectAllowed ? target : undefined}
               paletteId={paletteId}
-              ariaLabel="出題されたマンデルブロ集合の局所画像"
+              ariaLabel={t("targetImage")}
               onViewChange={onQuestionViewChange}
             />
             <QuestionTarget marker={questionTargetMarker} />
-            {(gameRules.questionPanAllowed || gameRules.questionInspectAllowed) && <button className="icon-button question-reset" type="button" onClick={() => questionRef.current?.reset()} aria-label="TARGETを初期表示へ戻す" title="初期表示へ戻す"><UiIcon name="reset" /></button>}
+            {(gameRules.questionPanAllowed || gameRules.questionInspectAllowed) && <button className="icon-button question-reset" type="button" onClick={() => questionRef.current?.reset()} aria-label={t("resetTarget")} title={t("resetView")}><UiIcon name="reset" /></button>}
           </FloatingQuestionWindow>
           <div className="guess-controls">
-            <div className={`guess-coordinate ${guess ? "has-guess" : ""}`} aria-live="polite"><UiIcon name="target" />{guess ? <code>{formatComplex(guess, mapView?.zoom ?? 1)}</code> : <span className="guess-coordinate-label">地点を選択</span>}</div>
-            <button className="submit-guess" type="button" disabled={!guess} onClick={onSubmit} aria-label="推測を確定"><span className="button-label">GUESS</span><UiIcon name="arrow" /></button>
+            <div className={`guess-coordinate ${guess ? "has-guess" : ""}`} aria-live="polite"><UiIcon name="target" />{guess ? <code>{formatComplex(guess, mapView?.zoom ?? 1)}</code> : <span className="guess-coordinate-label">{t("selectPoint")}</span>}</div>
+            <button className="submit-guess" type="button" disabled={!guess} onClick={onSubmit} aria-label={t("submitGuess")}><span className="button-label">{t("guessAction")}</span><UiIcon name="arrow" /></button>
           </div>
         </article>
       </section>

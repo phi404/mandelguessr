@@ -9,6 +9,7 @@ import {
 } from "react";
 import { WebGLMandelbrotRenderer } from "./WebGLMandelbrotRenderer";
 import { fixedCenterCorrection } from "./camera";
+import { useLanguage } from "../i18n/LanguageProvider";
 import type {
   Camera,
   ComplexCoordinate,
@@ -53,6 +54,7 @@ export const FractalViewport = forwardRef<
   },
   ref,
 ) {
+  const { t } = useLanguage();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<WebGLMandelbrotRenderer | null>(null);
   const onViewChangeRef = useRef(onViewChange);
@@ -136,7 +138,7 @@ export const FractalViewport = forwardRef<
       />
       {error && (
         <div className="renderer-error">
-          <p>{error}</p>
+          <p>{t("rendererUnavailable")}</p>
           <button
             type="button"
             onClick={() => {
@@ -144,7 +146,7 @@ export const FractalViewport = forwardRef<
               setRetryKey((value) => value + 1);
             }}
           >
-            再試行
+            {t("rendererRetry")}
           </button>
         </div>
       )}

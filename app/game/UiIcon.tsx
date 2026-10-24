@@ -17,7 +17,6 @@ const icons = {
   settings: <><path d="M4 7h16M4 17h16" /><circle cx="9" cy="7" r="3" fill="var(--panel)" /><circle cx="15" cy="17" r="3" fill="var(--panel)" /></>,
   info: <><circle cx="12" cy="12" r="9" /><path d="M12 11v6m0-10v.2" /></>,
   home: <><path d="m3 10 9-7 9 7M5 9v12h14V9M9 21v-7h6v7" /></>,
-  fractal: <><path d="M19 12c4-5.5 1-10-3-8.5C10 5.7 8 8.6 8 12s2 6.3 8 8.5c4 1.5 7-3 3-8.5Z" fill="currentColor" stroke="none" /><circle cx="5" cy="12" r="3" fill="currentColor" stroke="none" /></>,
 } satisfies Record<string, ReactNode>;
 
 export function UiIcon({ name }: { name: keyof typeof icons }) {

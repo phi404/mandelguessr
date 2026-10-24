@@ -7,6 +7,14 @@ import QuestionGeneratorWorker from "./question-generator.worker.ts?worker";
 import { validateQuestionGenerationRules } from "./game-rules";
 import type { MandelbrotPaletteId } from "../fractal/mandelbrot-palettes";
 import { generateSceneQuestionBatch } from "./scene-question-generator";
+import { SceneGraphicsUnavailableError } from "./scene-quality-calibration";
+
+export class QuestionGenerationError extends Error {
+  constructor(public readonly code: "timeout" | "graphics-unavailable" | "generation-failed") {
+    super(code);
+    this.name = "QuestionGenerationError";
+  }
+}
 
 // The request includes full-quality image readback as well as CPU geometry.
 const WORKER_TIMEOUT_MS = 30_000;
@@ -21,7 +29,10 @@ export function generateRoundQuestions(
   const fallback = (signal = options.signal) => generateSceneQuestionBatch({
     magnification: settings.magnification, count: settings.roundCount,
     seed: gameSeed, paletteId: options.paletteId,
-  }, { signal }).then((batch) => batch.questions);
+  }, { signal }).then((batch) => batch.questions, (cause: unknown) => {
+    if (cause instanceof DOMException && cause.name === "AbortError") throw cause;
+    throw new QuestionGenerationError(cause instanceof SceneGraphicsUnavailableError ? "graphics-unavailable" : "generation-failed");
+  });
   if (typeof Worker === "undefined") {
     return fallback();
   }
@@ -35,7 +46,7 @@ export function generateRoundQuestions(
       if (settled) return;
       controller.abort();
       finish();
-      reject(new Error("問題の生成に時間がかかりすぎています。"));
+      reject(new QuestionGenerationError("timeout"));
     }, WORKER_TIMEOUT_MS);
 
     const finish = () => {
@@ -66,7 +77,7 @@ export function generateRoundQuestions(
       if (!event.data.ok && event.data.code === "graphics-unavailable") { runFallback(); return; }
       finish();
       if (event.data.ok) resolve(event.data.questions);
-      else reject(new Error(event.data.message));
+      else reject(new QuestionGenerationError(event.data.code));
     });
     worker.addEventListener("error", () => {
       runFallback();

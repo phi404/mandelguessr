@@ -1,4 +1,5 @@
 import type { ReactNode, RefObject } from "react";
+import { useLanguage } from "../i18n/LanguageProvider";
 import {
   FractalViewport,
   type FractalViewportHandle,
@@ -39,16 +40,21 @@ export function ExploreScreen({
   onMenu: () => void;
   overlays: ReactNode;
 }) {
-  const center = view ? { re: view.centerRe, im: view.centerIm } : null;
+  const { t } = useLanguage();
+  const center = view ? { re: view.centerRe, im: view.centerIm } : { re: INITIAL_CAMERA.centerRe, im: INITIAL_CAMERA.centerIm };
   return (
     <main className="game-prototype explore-scene screen-enter">
-      <GameHeader label="EXPLORE" onHome={onHome} onMenu={onMenu} />
+      <GameHeader label={t("explore")} onHome={onHome} onMenu={onMenu} />
       <section className="exploration-stage">
         <article className="exploration-frame">
-          <FractalViewport ref={viewportRef} initialCamera={INITIAL_CAMERA} interaction={EXPLORE_INTERACTION} zoomLimits={zoomLimits} paletteId={paletteId} ariaLabel="マンデルブロ集合の自由探索マップ" onViewChange={onViewChange} />
+          <FractalViewport ref={viewportRef} initialCamera={INITIAL_CAMERA} interaction={EXPLORE_INTERACTION} zoomLimits={zoomLimits} paletteId={paletteId} ariaLabel={t("exploreMap")} onViewChange={onViewChange} />
           <div className="exploration-hud" title={view && center ? formatComplex(center, view.zoom) : undefined}><UiIcon name="zoom" /><strong>{view ? `×${formatZoom(view.zoom)}` : "×1"}</strong></div>
-          <button className="icon-button map-reset" type="button" onClick={() => viewportRef.current?.reset()} aria-label="全体表示へ戻す" title="全体表示"><UiIcon name="reset" /></button>
-          <div className="explore-controls"><span><UiIcon name="move" />ドラッグ</span><span><UiIcon name="zoom" />ホイール / ピンチ</span></div>
+          <button className="icon-button map-reset" type="button" onClick={() => viewportRef.current?.reset()} aria-label={t("resetMap")} title={t("overview")}><UiIcon name="reset" /></button>
+          <div className="explore-center" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v5m0 8v5M3 12h5m8 0h5"/><circle cx="12" cy="12" r="1.5"/></svg></div>
+          <footer className="explore-controls">
+            <output className="explore-coordinate" aria-label={t("centerCoordinates")}><span>{t("center")}</span><code>{formatComplex(center, view?.zoom ?? 1)}</code></output>
+            <div className="explore-hints"><span><UiIcon name="move" />{t("drag")}</span><span><UiIcon name="zoom" />{t("wheelPinch")}</span></div>
+          </footer>
         </article>
       </section>
       {overlays}

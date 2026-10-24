@@ -50,7 +50,9 @@ import {
 } from "./game/game-rules";
 import { createNextGameSeed } from "./game/seed";
 import { rulesSummary, targetOf } from "./game/game-display";
-import { generateRoundQuestions } from "./game/question-generator-client";
+import { generateRoundQuestions, QuestionGenerationError } from "./game/question-generator-client";
+import { useLanguage } from "./i18n/LanguageProvider";
+import { formatCoordinateDistance } from "./game/formatting";
 import {
   DEFAULT_USER_SETTINGS,
   loadGameRules,
@@ -81,6 +83,7 @@ const EXPLORE_ZOOM_LIMITS: ZoomLimits = {
 };
 
 export function MandelGuessrPrototype() {
+  const { t, language, number } = useLanguage();
   const mapRef = useRef<FractalViewportHandle>(null);
   const exploreRef = useRef<FractalViewportHandle>(null);
   const questionRef = useRef<FractalViewportHandle>(null);
@@ -206,7 +209,7 @@ export function MandelGuessrPrototype() {
       dispatchSession({
         type: "GENERATION_FAILED",
         message:
-          cause instanceof Error ? cause.message : "ゲームを生成できませんでした。",
+          cause instanceof QuestionGenerationError ? cause.code : "generation-failed",
       });
     } finally {
       if (creationTokenRef.current === token) {
@@ -282,7 +285,7 @@ export function MandelGuessrPrototype() {
 
   const startConfiguredGame = () => {
     if (!rulesAreValid) {
-      setSettingsError("設定値の範囲を確認してください。");
+      setSettingsError("settings-range");
       return;
     }
     const rules = {
@@ -378,7 +381,7 @@ export function MandelGuessrPrototype() {
     setShareOpen(false);
     dispatchSession({ type: "NAVIGATE", phase: nextPhase });
   };
-  const confirmLeavingGame = () => !gameInProgress || window.confirm("現在のゲームを終了しますか？");
+  const confirmLeavingGame = () => !gameInProgress || window.confirm(t("leaveGame"));
   const goHome = () => {
     if (!confirmLeavingGame()) return;
     clearGameState("home");
@@ -426,7 +429,7 @@ export function MandelGuessrPrototype() {
     setSampleCount(0);
   };
 
-  const gameMenuLabel = gameSeed !== null ? rulesSummary(gameRules) : undefined;
+  const gameMenuLabel = gameSeed !== null ? rulesSummary(gameRules, language) : undefined;
   const commonOverlays = (
     <>
       <NavigationMenu
@@ -466,11 +469,12 @@ export function MandelGuessrPrototype() {
       scores: records.map((record) => record.score),
       rules: gameRules,
       homeUrl: buildHomeUrl(),
+      language,
     });
     shareDialog = (
       <ShareDialog
-        score={`${totalScore.toLocaleString()} / ${(MAX_ROUND_SCORE * records.length).toLocaleString()}`}
-        secondary={records.length > 1 ? `AVG ${averageScore.toLocaleString()}` : undefined}
+        score={`${number(totalScore)} / ${number(MAX_ROUND_SCORE * records.length)}`}
+        secondary={`${t("averageDistance")} ${formatCoordinateDistance(records.reduce((sum, record) => sum + record.score.coordinateDistance, 0) / records.length)}`}
         text={text}
         onClose={() => setShareOpen(false)}
       />

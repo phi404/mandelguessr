@@ -10,7 +10,7 @@ test("static entry serves assets under the GitHub Pages project path", async () 
   assert.match(html, /<html lang="ja">/);
   assert.match(html, /<title>MandelGuessr<\/title>/);
   assert.match(html, /https:\/\/phi404\.github\.io\/mandelguessr\//);
-  assert.match(html, /href="\/mandelguessr\/favicon\.svg"/);
+  assert.match(html, /href="\/mandelguessr\/mandelguessr\.svg"/);
   const assets = [...html.matchAll(/(?:src|href)="(\/mandelguessr\/assets\/[^"]+)"/g)];
   assert.ok(assets.length >= 2, "entry JS and CSS must be emitted");
   for (const [, asset] of assets) {
@@ -57,25 +57,7 @@ test("preserves public UI, persistence, and safety contracts across module moves
     assert.match(appSource, new RegExp(`"${phase}"`));
   }
 
-  for (const visibleText of [
-    "MandelGuessr",
-    "NEW GAME",
-    "GENERATING",
-    "FAILED TO CREATE GAME",
-    "GUESS",
-    "PLAY AGAIN",
-    "SHARE RESULT",
-    "COPY RESULT",
-    "INFORMATION",
-    "SETTINGS",
-  ]) {
-    assert.match(appSource, new RegExp(visibleText));
-  }
-
   assert.match(appSource, /role="switch"/);
-  assert.match(appSource, /aria-label="メニュー"/);
-  assert.match(appSource, /マンデルブロ集合の自由探索マップ/);
-  assert.match(appSource, /GUESSとTARGETを示す結果マップ/);
   assert.match(appSource, /className="exploration-frame"/);
   assert.match(appSource, /result-connection/);
   assert.match(appSource, /fixedCenter=/);
@@ -96,7 +78,7 @@ test("preserves public UI, persistence, and safety contracts across module moves
   assert.match(sharing, /navigator\.clipboard\.writeText/);
   assert.doesNotMatch(
     sharing,
-    /\bpalette\b|\bseed\b|generatorVersion|coordinates?|URLSearchParams/i,
+    /\bpaletteId\b|\bseed\b|generatorVersion|centerRe|centerIm|URLSearchParams/i,
   );
   assert.match(workerClient, /question-generator\.worker\.ts\?worker/);
   assert.doesNotMatch(workerClient, /new URL\(/);

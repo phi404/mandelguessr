@@ -1,10 +1,13 @@
 import { formatRoundCount, type GameRules } from "./game-rules";
 import { MAX_ROUND_SCORE, type GuessScore } from "./score-guess";
+import { formatCoordinateDistance } from "./formatting";
+import { translate, type Language } from "../i18n/messages";
 
 type ShareResult = {
-  scores: Pick<GuessScore, "points">[];
+  scores: (Pick<GuessScore, "points"> & Partial<Pick<GuessScore, "coordinateDistance">>)[];
   rules: GameRules;
   homeUrl: string;
+  language?: Language;
 };
 
 export function buildHomeUrl(currentUrl?: string) {
@@ -18,21 +21,26 @@ export function buildHomeUrl(currentUrl?: string) {
   return url.toString();
 }
 
-export function formatShareResult({ scores, rules, homeUrl }: ShareResult) {
+export function formatShareResult({ scores, rules, homeUrl, language = "en" }: ShareResult) {
   const roundCount = scores.length;
   const totalScore = scores.reduce((sum, score) => sum + score.points, 0);
   const maximumScore = MAX_ROUND_SCORE * roundCount;
+  const number = (value: number) => value.toLocaleString(language === "ja" ? "ja-JP" : language);
   const averageLine = roundCount > 1
-    ? `\nAVG ${Math.round(totalScore / roundCount).toLocaleString()}`
+    ? `\n${translate(language, "averageScore")} ${number(Math.round(totalScore / roundCount))}`
+    : "";
+  const distanceLine = roundCount > 0 && scores.every(score => Number.isFinite(score.coordinateDistance))
+    ? `${translate(language, "averageDistance")} ${formatCoordinateDistance(scores.reduce((sum, score) => sum + score.coordinateDistance!, 0) / roundCount)}`
     : "";
 
   return [
     "MandelGuessr",
     "",
-    `${totalScore.toLocaleString()} / ${maximumScore.toLocaleString()}${averageLine}`,
+    `${number(totalScore)} / ${number(maximumScore)}${averageLine}`,
+    ...(distanceLine ? [distanceLine] : []),
     "",
     `×${rules.magnification} · ${formatRoundCount(roundCount)}`,
-    `PAN ${rules.questionPanAllowed ? "ON" : "OFF"} · INSPECT ${rules.questionInspectAllowed ? "ON" : "OFF"}`,
+    `${translate(language, "panSummary", { state: rules.questionPanAllowed ? "ON" : "OFF" })} · ${translate(language, "zoomSummary", { state: rules.questionInspectAllowed ? "ON" : "OFF" })}`,
     "",
     "#MandelGuessr",
     homeUrl,

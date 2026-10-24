@@ -1,4 +1,6 @@
-import { readFile } from "node:fs/promises";
+import { access, readFile } from "node:fs/promises";
+import { createRequire } from "node:module";
+import { pathToFileURL } from "node:url";
 import ts from "../../node_modules/typescript/lib/typescript.js";
 
 export async function importTypeScriptModule(
@@ -6,6 +8,7 @@ export async function importTypeScriptModule(
   baseUrl = new URL("../", import.meta.url),
 ) {
   const entryUrl = new URL(relativePath, baseUrl);
+  const require = createRequire(import.meta.url);
   const cache = new Map();
 
   async function compile(moduleUrl) {
@@ -16,17 +19,29 @@ export async function importTypeScriptModule(
         compilerOptions: {
           module: ts.ModuleKind.ESNext,
           target: ts.ScriptTarget.ES2022,
+          jsx: ts.JsxEmit.ReactJSX,
         },
       }).outputText;
-      const relativeImports = [
-        ...output.matchAll(/from\s+["'](\.[^"']+)["']/g),
+      const specifiers = [
+        ...output.matchAll(/from\s+["']([^"']+)["']/g),
       ].map((match) => match[1]);
 
-      for (const specifier of new Set(relativeImports)) {
-        const dependencyUrl = new URL(
+      for (const specifier of new Set(specifiers)) {
+        if (!specifier.startsWith(".")) {
+          const resolved = pathToFileURL(require.resolve(specifier)).href;
+          output = output.replaceAll(`from "${specifier}"`, `from "${resolved}"`)
+            .replaceAll(`from '${specifier}'`, `from '${resolved}'`);
+          continue;
+        }
+        let dependencyUrl = new URL(
           /\.[cm]?[jt]sx?$/.test(specifier) ? specifier : `${specifier}.ts`,
           moduleUrl,
         );
+        try {
+          await access(dependencyUrl);
+        } catch {
+          dependencyUrl = new URL(`${specifier}.tsx`, moduleUrl);
+        }
         const dependencyDataUrl = await compile(dependencyUrl);
         output = output
           .replaceAll(`from "${specifier}"`, `from "${dependencyDataUrl}"`)
