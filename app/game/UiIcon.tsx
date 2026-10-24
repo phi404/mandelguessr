@@ -9,6 +9,7 @@ const icons = {
   expand: <path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5" />,
   collapse: <path d="M3 8h5V3m8 0v5h5M8 21v-5H3m13 5v-5h5" />,
   minimize: <path d="M5 16h14" />,
+  restore: <><rect x="5" y="7" width="12" height="12" rx="1" /><path d="M9 7V4h11v11h-3" /></>,
   reset: <><path d="M3 10a9 9 0 1 1 2 8M3 4v6h6" /></>,
   chevron: <path d="m6 9 6 6 6-6" />,
   move: <><path d="M12 3v18M3 12h18m-12-6 3-3 3 3m-6 12 3 3 3-3M6 9l-3 3 3 3m12-6 3 3-3 3" /></>,

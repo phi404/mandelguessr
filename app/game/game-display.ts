@@ -1,7 +1,7 @@
 import type { Camera, ComplexCoordinate } from "../fractal/types";
 import { MANDELBROT_VIEW_ASPECT_RATIO } from "../fractal/mandelbrot-domain";
-import { formatRoundCount, type GameRules } from "./game-rules";
-import { translate, type Language } from "../i18n/messages";
+import type { GameRules } from "./game-rules";
+import { formatRoundSummary, translate, type Language } from "../i18n/messages";
 import type { PrototypeQuestion } from "./question-generator";
 import type { RoundRecord } from "./game-session";
 import { fitResultCamera } from "./result-map";
@@ -26,8 +26,8 @@ export function revealCamera(record: RoundRecord): Camera {
 export function rulesSummary(rules: GameRules, language: Language = "en") {
   return [
     `×${rules.magnification}`,
-    formatRoundCount(rules.roundCount),
-    translate(language, "panSummary", { state: rules.questionPanAllowed ? "ON" : "OFF" }),
-    translate(language, "zoomSummary", { state: rules.questionInspectAllowed ? "ON" : "OFF" }),
+    formatRoundSummary(language, rules.roundCount),
+    translate(language, "panSummary", { state: translate(language, rules.questionPanAllowed ? "on" : "off") }),
+    translate(language, "zoomSummary", { state: translate(language, rules.questionInspectAllowed ? "on" : "off") }),
   ].join(" · ");
 }

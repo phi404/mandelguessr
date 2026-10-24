@@ -260,9 +260,9 @@ export function InformationDialog({
           </details>
           <details className="info-section">
             <summary><UiIcon name="play" />{t("howToPlay")}<UiIcon name="chevron" /></summary>
-            <p>{t("howToPlayText")}</p>
+            <p>{t("howToPlayText", { target: t("target"), action: t("guessAction") })}</p>
             <p>{t("distanceExplanation")}</p>
-            <p>{t("howToExplore")}</p>
+            <p>{t("howToExplore", { explore: t("explore") })}</p>
           </details>
           <details className="info-section">
             <summary><UiIcon name="move" />{t("controls")}<UiIcon name="chevron" /></summary>

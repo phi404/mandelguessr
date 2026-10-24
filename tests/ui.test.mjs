@@ -9,7 +9,7 @@ const { HomeScreen, CreationScreen } = await importTypeScriptModule("../app/game
 const { SettingsDialog, InformationDialog } = await importTypeScriptModule("../app/game/GameOverlays.tsx");
 const { RoundResultScreen, FinalResultScreen } = await importTypeScriptModule("../app/game/ResultScreens.tsx");
 const { ExploreScreen } = await importTypeScriptModule("../app/game/ExploreScreen.tsx");
-const { messages, translate, loadLanguage, saveLanguage, LANGUAGE_STORAGE_KEY, LANGUAGES, LANGUAGE_OPTIONS } = await importTypeScriptModule("../app/i18n/messages.ts");
+const { messages, translate, formatRoundSummary, loadLanguage, saveLanguage, LANGUAGE_STORAGE_KEY, LANGUAGES, LANGUAGE_OPTIONS } = await importTypeScriptModule("../app/i18n/messages.ts");
 const { formatShareResult } = await importTypeScriptModule("../app/game/share-game.ts");
 
 const noop = () => {};
@@ -91,6 +91,7 @@ test("settings keep native language names and the guide introduces shape before 
     assert.ok(guide.indexOf(messages[language].mandelbrotAppearance) < guide.indexOf(messages[language].mandelbrotFractal));
     assert.ok(guide.indexOf(messages[language].mandelbrotFractal) < guide.indexOf(messages[language].mandelbrotDefinition));
     assert.ok(guide.indexOf(messages[language].mandelbrotDefinition) < guide.indexOf(messages[language].mandelbrotColors));
+    assert.ok(guide.includes(translate(language, "howToPlayText", { target: messages[language].target, action: messages[language].guessAction })));
   }
 });
 
@@ -112,6 +113,8 @@ test("language choice survives reload and tolerates unavailable or invalid stora
     assert.equal(loadLanguage(), "ja");
     saveLanguage("en");
     assert.equal(loadLanguage(), "en");
+    saveLanguage("eo");
+    assert.equal(loadLanguage(), "eo");
     assert.equal(storage.get("mandelguessr.user-settings.v1"), '{"paletteId":"retro"}');
     storage.set(LANGUAGE_STORAGE_KEY, "unsupported-language");
     assert.equal(loadLanguage(), "ja");
@@ -124,11 +127,11 @@ test("language choice survives reload and tolerates unavailable or invalid stora
   }
 });
 
-test("translations cover both languages and resolve every interpolation", () => {
+test("translations cover every language and resolve every interpolation", () => {
   for (const language of LANGUAGES) assert.deepEqual(Object.keys(messages[language]).sort(), Object.keys(messages.ja).sort());
   for (const language of LANGUAGES) {
     for (const key of Object.keys(messages[language])) {
-      assert.doesNotMatch(translate(language, key, { count: 2, current: 1, total: 2, round: 1, state: "ON" }), /\{\w+\}/);
+      assert.doesNotMatch(translate(language, key, { count: 2, current: 1, total: 2, round: 1, state: "ON", target: messages[language].target, action: messages[language].guessAction, explore: messages[language].explore }), /\{\w+\}/);
     }
   }
   assert.equal(translate("en", "roundCount", { count: 1 }), "1 round");
@@ -137,6 +140,7 @@ test("translations cover both languages and resolve every interpolation", () => 
   assert.equal(translate("fr", "roundCount", { count: 1 }), "1 manche");
   assert.equal(translate("de", "roundCount", { count: 1 }), "1 Runde");
   assert.equal(translate("pt-BR", "roundCount", { count: 1 }), "1 rodada");
+  assert.equal(translate("eo", "roundCount", { count: 1 }), "1 raŭndo");
 });
 
 test("generation failures stay readable in the selected language", () => {
@@ -157,13 +161,13 @@ test("shared results use the selected language and average raw coordinate distan
       homeUrl: "https://phi404.github.io/mandelguessr/",
     });
     assert.ok(text.includes(`${messages[language].averageDistance} 0.5`));
-    assert.match(text, /2 ROUNDS/);
-    assert.doesNotMatch(text, /9876|画像対角線|screen diagonal|centerRe|centerIm/);
+    assert.ok(text.includes(formatRoundSummary(language, 2)));
+    assert.doesNotMatch(text, /9876|画像対角線|screen diagonal|centerRe|centerIm|INSPECT/);
   }
 });
 
 
-test("original English control labels stay unchanged in all eight languages", () => {
+test("CJK retains English controls while Latin-script languages use localized controls", () => {
   const expected = {
     play: "PLAY", explore: "EXPLORE", guessAction: "GUESS", guess: "GUESS", target: "TARGET",
     menuTitle: "MENU", paused: "PAUSED", resume: "RESUME", close: "CLOSE", home: "HOME",
@@ -173,11 +177,18 @@ test("original English control labels stay unchanged in all eight languages", ()
     shareResult: "SHARE RESULT", copyResult: "COPY RESULT", shareOnX: "SHARE ON X",
     generating: "GENERATING", retry: "RETRY", "palette.classic": "CLASSIC", "palette.scientific": "SCIENTIFIC",
   };
-  assert.equal(LANGUAGES.length, 8);
-  for (const language of LANGUAGES) {
+  assert.equal(LANGUAGES.length, 9);
+  for (const language of ["ja", "en", "zh-CN", "ko"]) {
     for (const [key, text] of Object.entries(expected)) assert.equal(translate(language, key), text, language + ":" + key);
     const home = render(HomeScreen, language, { ...common, onPlay: noop, onExplore: noop });
     assert.match(home, />PLAY<\/span>/);
     assert.match(home, />EXPLORE<\/span>/);
   }
+  for (const [language, play, explore] of [["es", "Jugar", "Explorar"], ["fr", "Jouer", "Explorer"], ["de", "Spielen", "Erkunden"], ["pt-BR", "Jogar", "Explorar"], ["eo", "Ludi", "Esplori"]]) {
+    const home = render(HomeScreen, language, { ...common, onPlay: noop, onExplore: noop });
+    assert.ok(home.includes(`>${play}</span>`));
+    assert.ok(home.includes(`>${explore}</span>`));
+    assert.doesNotMatch(home, />PLAY<|>EXPLORE</);
+  }
+  assert.equal(translate("ja", "zoomSummary", { state: "ON" }), "ZOOM ON");
 });

@@ -1,7 +1,7 @@
-import { formatRoundCount, type GameRules } from "./game-rules";
+import type { GameRules } from "./game-rules";
 import { MAX_ROUND_SCORE, type GuessScore } from "./score-guess";
 import { formatCoordinateDistance } from "./formatting";
-import { translate, type Language } from "../i18n/messages";
+import { formatRoundSummary, translate, type Language } from "../i18n/messages";
 
 type ShareResult = {
   scores: (Pick<GuessScore, "points"> & Partial<Pick<GuessScore, "coordinateDistance">>)[];
@@ -39,8 +39,8 @@ export function formatShareResult({ scores, rules, homeUrl, language = "en" }: S
     `${number(totalScore)} / ${number(maximumScore)}${averageLine}`,
     ...(distanceLine ? [distanceLine] : []),
     "",
-    `×${rules.magnification} · ${formatRoundCount(roundCount)}`,
-    `${translate(language, "panSummary", { state: rules.questionPanAllowed ? "ON" : "OFF" })} · ${translate(language, "zoomSummary", { state: rules.questionInspectAllowed ? "ON" : "OFF" })}`,
+    `×${rules.magnification} · ${formatRoundSummary(language, roundCount)}`,
+    `${translate(language, "panSummary", { state: translate(language, rules.questionPanAllowed ? "on" : "off") })} · ${translate(language, "zoomSummary", { state: translate(language, rules.questionInspectAllowed ? "on" : "off") })}`,
     "",
     "#MandelGuessr",
     homeUrl,

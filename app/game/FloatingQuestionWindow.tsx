@@ -149,7 +149,7 @@ export function FloatingQuestionWindow({
           aria-expanded={!layout.minimized}
           aria-controls={contentId}
         >
-          <UiIcon name={layout.minimized ? "expand" : "minimize"} />
+          <UiIcon name={layout.minimized ? "restore" : "minimize"} />
         </button>
       </header>
       <div className="floating-window-content" id={contentId} hidden={layout.minimized}>{children}</div>
@@ -172,7 +172,7 @@ export function FloatingQuestionWindow({
           onPointerCancel={endGesture}
           onLostPointerCapture={endGesture}
           onKeyDown={handleResizeKey}
-        ><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 13V4h9M4 4l9 9" /></svg></div>
+        />
       ))}
     </section>
   );

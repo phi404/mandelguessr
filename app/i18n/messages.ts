@@ -1,4 +1,6 @@
 import { ENGLISH_LABELS } from "./english-labels";
+import { LOCALIZED_CONTROLS } from "./localized-controls";
+import { eo } from "./esperanto";
 
 import { zh, ko, es, fr, de, pt } from "./extra-languages";
 
@@ -34,6 +36,10 @@ export const LANGUAGE_OPTIONS = [
   {
     "value": "pt-BR",
     "label": "Português (Brasil)"
+  },
+  {
+    "value": "eo",
+    "label": "Esperanto"
   }
 ] as const;
 
@@ -59,12 +65,12 @@ const ja = {
   "roundPresets": "ラウンド数のプリセット",
   "roundCount": "{count}問",
   "custom": "カスタム",
-  "panTarget": "ターゲットの移動",
+  "panTarget": "パン",
   "panHelp": "出題画像をドラッグして周辺を観察できます。",
-  "panAllowed": "ターゲットの移動を許可",
-  "zoomTarget": "追加ズーム",
+  "panAllowed": "ターゲットのパンを許可",
+  "zoomTarget": "ズーム",
   "zoomHelp": "出題時の倍率から、さらにターゲットを拡大できます。",
-  "zoomAllowed": "ターゲットの追加拡大を許可",
+  "zoomAllowed": "ターゲットのズームを許可",
   "settingsRange": "設定値の範囲を確認してください。",
   "generationFailed": "問題を生成できませんでした。もう一度お試しください。",
   "generationTimeout": "問題の生成に時間がかかっています。もう一度お試しください。",
@@ -93,7 +99,7 @@ const ja = {
   "distanceError": "距離",
   "averageDistance": "平均距離",
   "distanceHelp": "複素平面上の、回答地点と正解地点の直線距離です。",
-  "meanDistanceHelp": "各ラウンドの距離誤差を足し、ラウンド数で割った値です。",
+  "meanDistanceHelp": "各ラウンドの距離を足し、ラウンド数で割った値です。",
   "coordinates": "座標",
   "gameDetails": "ゲーム情報",
   "targetFeedback": "ターゲットの評価",
@@ -104,22 +110,22 @@ const ja = {
   "paletteGroup": "パレット",
   "officialPalettes": "配色パレット",
   "howToPlay": "遊び方",
-  "howToPlayText": "TARGETと同じ場所を探し、地図上の地点を選んでGUESSで回答します。正解に近いほど高得点です。1問あたり最大5,000点です。",
-  "howToExplore": "「探索」では、回答をせずに集合を自由に移動・拡大できます。",
-  "distanceExplanation": "結果に表示される距離誤差は、複素平面上の回答地点と正解地点を結ぶ直線の長さです。0なら同じ地点です。",
+  "howToPlayText": "{target}と同じ場所を探し、地図上の地点を選んで{action}で回答します。正解に近いほど高得点です。1問あたり最大5,000点です。",
+  "howToExplore": "{explore}では、回答をせずに集合を自由にパン・ズームできます。",
+  "distanceExplanation": "結果に表示される距離は、複素平面上の回答地点と正解地点を結ぶ直線の長さです。0なら同じ地点です。",
   "controls": "操作",
-  "move": "移動",
+  "move": "パン",
   "zoom": "ズーム",
   "selectLocation": "地点選択",
   "clickTap": "クリック / タップ",
   "windowControl": "タイトルバーをドラッグして移動し、左上または右下の角をドラッグしてサイズを変えます。右上のボタンで最小化・復元できます。",
-  "rulesControl": "ゲーム設定でターゲットの移動・追加ズームを許可できます。出題時より広い範囲へ縮小することはできません。",
+  "rulesControl": "ゲーム設定でターゲットのパン・ズームを許可できます。出題時より広い範囲へ縮小することはできません。",
   "mandelbrot": "マンデルブロ集合",
   "mandelbrotPlane": "画面は複素平面です。横軸が実部、縦軸が虚部を表し、一つの複素数 c が画面上の一点に対応します。",
   "mandelbrotIteration": "その点の c を固定し、0から「数を2乗して c を足す」という計算を繰り返します。",
   "mandelbrotDefinition": "計算を何回続けても値が一定の範囲にとどまる、そのような c を集めたものがマンデルブロ集合です。",
   "exampleZero": "0 → 0 → 0 → …。0のままなので集合に含まれます。",
-  "exampleMinusOne": "0 → −1 → 0 → −1 → …。同じ値を繰り返すので集合に含まれます。",
+  "exampleMinusOne": "0 → −1 → 0 → −1 → …。0と−1を交互に取るので集合に含まれます。",
   "exampleOne": "0 → 1 → 2 → 5 → 26 → …。際限なく大きくなるので集合に含まれません。",
   "mandelbrotColors": "黒い部分は、設定された計算回数では発散が確認されなかった点を表す近似です。周囲の色は、値が遠くへ離れていく速さなどを表しています。",
 
@@ -163,12 +169,12 @@ const en: LocalizedMessages = {
   "roundPresets": "Round count presets",
   "roundCount": "{count} rounds",
   "custom": "Custom",
-  "panTarget": "Move target image",
+  "panTarget": "Pan",
   "panHelp": "Drag the target image to look around.",
   "panAllowed": "Allow panning in the target image",
-  "zoomTarget": "Extra zoom",
+  "zoomTarget": "Zoom",
   "zoomHelp": "Zoom further into the target image from its starting magnification.",
-  "zoomAllowed": "Allow extra zoom in the target image",
+  "zoomAllowed": "Allow zooming in the target image",
   "settingsRange": "Check that the settings are within the allowed ranges.",
   "generationFailed": "Could not generate the questions. Please try again.",
   "generationTimeout": "Generating the questions is taking too long. Please try again.",
@@ -197,7 +203,7 @@ const en: LocalizedMessages = {
   "distanceError": "Distance",
   "averageDistance": "Mean distance",
   "distanceHelp": "The straight-line distance between your guess and the target on the complex plane.",
-  "meanDistanceHelp": "The sum of the distance errors divided by the number of rounds.",
+  "meanDistanceHelp": "The sum of the distances divided by the number of rounds.",
   "coordinates": "Coordinates",
   "gameDetails": "Game details",
   "targetFeedback": "Rate the target image",
@@ -208,16 +214,16 @@ const en: LocalizedMessages = {
   "paletteGroup": "Palette",
   "officialPalettes": "Color palettes",
   "howToPlay": "How to play",
-  "howToPlayText": "Find the location shown in TARGET, select it on the map, and press GUESS. The closer you are to the target, the higher your score, up to 5,000 points per round.",
-  "howToExplore": "Explore lets you pan and zoom around the set freely, without placing a guess.",
-  "distanceExplanation": "Distance error is the straight-line distance between your guess and the target on the complex plane. A distance of 0 means the two locations are identical.",
+  "howToPlayText": "Find the location shown in {target}, select it on the map, and press {action}. The closer you are to the target, the higher your score, up to 5,000 points per round.",
+  "howToExplore": "{explore} lets you pan and zoom around the set freely, without placing a guess.",
+  "distanceExplanation": "The displayed distance is the straight-line distance between your guess and the target on the complex plane. A distance of 0 means the two locations are identical.",
   "controls": "Controls",
-  "move": "Move",
+  "move": "Pan",
   "zoom": "Zoom",
   "selectLocation": "Select location",
   "clickTap": "Click / tap",
   "windowControl": "Drag the title bar to move the window. Drag its top-left or bottom-right corner to resize it. The top-right button minimizes and restores it.",
-  "rulesControl": "Game settings can allow panning and extra zoom in the target image. You cannot zoom out beyond its starting view.",
+  "rulesControl": "Game settings can allow panning and zooming in the target image. You cannot zoom out beyond its starting view.",
   "mandelbrot": "The Mandelbrot set",
   "mandelbrotPlane": "The map is the complex plane. The horizontal axis is the real part and the vertical axis is the imaginary part. Each complex number c corresponds to a point on the map.",
   "mandelbrotIteration": "Keep c fixed. Starting at 0, repeatedly square the current value and add c.",
@@ -250,51 +256,47 @@ const en: LocalizedMessages = {
 export type MessageKey = keyof typeof ja | keyof typeof ENGLISH_LABELS;
 
 export const messages = {
-
-  ja: { ...ja, ...ENGLISH_LABELS }, en: { ...en, ...ENGLISH_LABELS },
-
-  "zh-CN": { ...zh, ...ENGLISH_LABELS }, ko: { ...ko, ...ENGLISH_LABELS },
-
-  es: { ...es, ...ENGLISH_LABELS }, fr: { ...fr, ...ENGLISH_LABELS },
-
-  de: { ...de, ...ENGLISH_LABELS }, "pt-BR": { ...pt, ...ENGLISH_LABELS },
-
+  ja: { ...ja, ...ENGLISH_LABELS },
+  en: { ...en, ...ENGLISH_LABELS },
+  "zh-CN": { ...zh, ...ENGLISH_LABELS },
+  ko: { ...ko, ...ENGLISH_LABELS },
+  es: { ...es, ...LOCALIZED_CONTROLS.es },
+  fr: { ...fr, ...LOCALIZED_CONTROLS.fr },
+  de: { ...de, ...LOCALIZED_CONTROLS.de },
+  "pt-BR": { ...pt, ...LOCALIZED_CONTROLS["pt-BR"] },
+  eo: { ...eo, ...LOCALIZED_CONTROLS.eo },
 };
 
 export const LANGUAGE_STORAGE_KEY = "mandelguessr.language.v1";
 
 export function isLanguage(value: unknown): value is Language {
-
   return typeof value === "string" && LANGUAGES.includes(value as Language);
-
 }
 
 export function loadLanguage(): Language {
-
   try {
-
     const value = typeof window === "undefined" ? null : window.localStorage.getItem(LANGUAGE_STORAGE_KEY);
-
     return isLanguage(value) ? value : "ja";
-
   } catch { return "ja"; }
-
 }
 
 export function saveLanguage(language: Language) {
-
   try { if (typeof window !== "undefined") window.localStorage.setItem(LANGUAGE_STORAGE_KEY, language); } catch { /* Selection remains available without storage. */ }
-
 }
 
-const singularRounds: Partial<Record<Language, string>> = { en: "1 round", es: "1 ronda", fr: "1 manche", de: "1 Runde", "pt-BR": "1 rodada" };
+const singularRounds: Partial<Record<Language, string>> = {
+  en: "1 round", es: "1 ronda", fr: "1 manche", de: "1 Runde", "pt-BR": "1 rodada", eo: "1 raŭndo",
+};
 
 export function translate(language: Language, key: MessageKey, values: Record<string, string | number> = {}): string {
-
   if (key === "roundCount" && values.count === 1 && singularRounds[language]) return singularRounds[language]!;
-
   if (key === "localDataCount") values = { ...values, rounds: translate(language, "roundCount", { count: values.count }) };
-
   return messages[language][key].replace(/\{(\w+)\}/g, (placeholder, name: string) => String(values[name] ?? placeholder));
+}
 
+export function formatRoundSummary(language: Language, count: number): string {
+  if (language === "ja" || language === "en" || language === "zh-CN" || language === "ko") {
+    return count + (count === 1 ? " ROUND" : " ROUNDS");
+  }
+  return translate(language, "roundCount", { count });
 }

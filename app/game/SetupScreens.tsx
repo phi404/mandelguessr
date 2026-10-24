@@ -101,7 +101,7 @@ export function NewGameScreen({
   onRulesChange: (patch: Partial<GameRules>) => void;
   onStart: () => void;
 }) {
-  const { t } = useLanguage();
+  const { t, number } = useLanguage();
   return (
     <main className="game-prototype setup-scene new-game-scene screen-enter">
       <GameHeader label={t("newGame")} onHome={onHome} onMenu={onMenu} />
@@ -120,14 +120,14 @@ export function NewGameScreen({
             </label>
           </section>
           <section className="setting-group" aria-labelledby="round-count-label">
-            <header className="setting-heading"><h2 id="round-count-label"><UiIcon name="target" />{t("rounds")}</h2><span>{roundCountIsValid ? t("roundCount", { count: parsedRoundCount }) : "—"}</span></header>
+            <header className="setting-heading"><h2 id="round-count-label"><UiIcon name="target" />{t("rounds")}</h2><span>{roundCountIsValid ? number(parsedRoundCount) : "—"}</span></header>
             <div className="preset-options round-presets" role="group" aria-label={t("roundPresets")}>
               {ROUND_COUNT_OPTIONS.map((value) => (
                 <button key={value} className="preset-button" type="button" aria-pressed={parsedRoundCount === value} onClick={() => { onRoundCountInput(String(value)); onRulesChange({ roundCount: value }); }}>{value}</button>
               ))}
             </div>
             <label className="number-setting compact-number-setting" htmlFor="custom-round-count">
-              <span>{t("custom")}</span><div><input id="custom-round-count" type="number" inputMode="numeric" min={MIN_ROUND_COUNT} max={MAX_ROUND_COUNT} step="1" value={roundCountInput} aria-invalid={!roundCountIsValid} onChange={(event) => { const value = event.currentTarget.value; const number = Number(value); onRoundCountInput(value); if (isValidRoundCount(number)) onRulesChange({ roundCount: number }); }} /><b aria-hidden="true">R</b></div>
+              <span>{t("custom")}</span><div><input id="custom-round-count" type="number" inputMode="numeric" min={MIN_ROUND_COUNT} max={MAX_ROUND_COUNT} step="1" value={roundCountInput} aria-invalid={!roundCountIsValid} onChange={(event) => { const value = event.currentTarget.value; const number = Number(value); onRoundCountInput(value); if (isValidRoundCount(number)) onRulesChange({ roundCount: number }); }} /></div>
             </label>
           </section>
           <div className="rule-toggle-grid">

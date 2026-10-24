@@ -1,4 +1,4 @@
-// Shared controls retain their original English labels in every language.
+// Japanese, Chinese, Korean, and English retain the original control labels.
 export const ENGLISH_LABELS = {
   "menuTitle": "MENU",
   "paused": "PAUSED",
@@ -33,7 +33,7 @@ export const ENGLISH_LABELS = {
   "copyFailed": "COPY FAILED",
   "sourceCode": "SOURCE CODE",
   "panSummary": "PAN {state}",
-  "zoomSummary": "INSPECT {state}",
+  "zoomSummary": "ZOOM {state}",
   "on": "ON",
   "off": "OFF",
   "palette.classic": "CLASSIC",

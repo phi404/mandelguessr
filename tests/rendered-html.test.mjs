@@ -572,7 +572,7 @@ test("result sharing uses one plain-text formatter and the home URL", async () =
 AVG 4,269
 
 ×1000 · 5 ROUNDS
-PAN OFF · INSPECT ON
+PAN OFF · ZOOM ON
 
 #MandelGuessr
 https://phi404.github.io/mandelguessr/`);

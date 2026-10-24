@@ -146,11 +146,9 @@ summary::-webkit-details-marker { display: none; }
 .floating-window-titlebar button:hover { background: #ffffff12; color: var(--ink); }
 .floating-window-titlebar button:focus-visible { outline-offset: -4px; }
 .floating-window-content { position: relative; width: 100%; aspect-ratio: 8 / 5; overflow: hidden; }
-.window-resize-handle { position: absolute; z-index: 8; width: 26px; height: 26px; padding: 3px; color: #c9d8f5; background: #1016208c; cursor: nwse-resize; touch-action: none; }
-.window-resize-handle svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 1.5; }
-.resize-top-left { top: 0; left: 0; border-bottom-right-radius: 7px; }
-.resize-bottom-right { right: 0; bottom: 0; border-top-left-radius: 7px; transform: rotate(180deg); }
-.window-resize-handle:hover { background: #28364b; color: #fff; }
+.window-resize-handle { position: absolute; z-index: 8; width: 26px; height: 26px; cursor: nwse-resize; touch-action: none; }
+.resize-top-left { top: 0; left: 0; }
+.resize-bottom-right { right: 0; bottom: 0; }
 .window-resize-handle:focus-visible { outline: 2px solid var(--accent); outline-offset: -3px; }
 .floating-window-content .question-reset { position: absolute; z-index: 4; left: 10px; bottom: 10px; min-width: 40px; min-height: 40px; padding: 9px; border-color: #ffffff40; background: #101620e8; backdrop-filter: blur(8px); }
 .guess-controls, .explore-controls { position: absolute; z-index: 6; right: 0; bottom: 0; left: 0; display: flex; align-items: center; justify-content: space-between; gap: 18px; height: 64px; padding: 8px 20px; border-top: 1px solid var(--line); background: linear-gradient(180deg, #141a24, #0c1119); }
