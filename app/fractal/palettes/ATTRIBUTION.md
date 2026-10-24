@@ -23,6 +23,7 @@ interpolation; the tables are not gamma-corrected or otherwise modified.
   the corrected built-in Log mapping at the serialized UPR phase.
 - Reference license: CC BY-SA 3.0 and GFDL; credit Wolfgang Beyer.
 - Source URL: https://commons.wikimedia.org/wiki/File:Mandel_zoom_00_mandelbrot_set.jpg
+- The social preview `public/og.png` is computed with this palette and a title overlay.
 
 ## RETRO (`fractint-default-map-32-55-v1`)
 
