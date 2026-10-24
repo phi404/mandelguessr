@@ -4,14 +4,15 @@ import type {
 } from "../fractal/types";
 import {
   MANDELBROT_VIEW_ASPECT_RATIO,
+  MANDELBROT_OVERVIEW_CAMERA,
   mandelbrotOverviewDiagonal,
 } from "../fractal/mandelbrot-domain";
-import { SCORE_CONFIG_RATIOS } from "./score-config";
+import { SCORE_CONFIG, SCORE_CONFIG_RATIOS } from "./score-config";
 
 export const MAX_ROUND_SCORE = 5000;
 
 export const SCORING_RULESET = {
-  id: "normalized-distance-v1",
+  id: `map-distance-v2-h${SCORE_CONFIG.halfDistance}-tau${SCORE_CONFIG.fullScoreTolerance}`,
   maximum: MAX_ROUND_SCORE,
 } as const;
 
@@ -34,35 +35,30 @@ export type LabScore = {
   usedFullScoreTolerance: boolean;
 };
 
-/** 1 question-screen diagonal of error halves the displayed score. */
-export function scoreFromNormalizedDistance(normalizedDistance: number) {
-  const boundedDistance = Math.max(0, normalizedDistance);
-  return Math.round(MAX_ROUND_SCORE * 2 ** -boundedDistance);
-}
-
 export function scoreGuess(
   camera: Camera,
   guess: ComplexCoordinate,
   answer: ComplexCoordinate,
 ): GuessScore {
-  const coordinateDistance = Math.hypot(
-    guess.re - answer.re,
-    guess.im - answer.im,
+  const score = scoreLabGuess(
+    guess,
+    answer,
+    MANDELBROT_OVERVIEW_CAMERA.viewportWidth / camera.viewportWidth,
   );
   const viewportHeight = camera.viewportWidth / MANDELBROT_VIEW_ASPECT_RATIO;
   const viewportDiagonal = Math.hypot(camera.viewportWidth, viewportHeight);
-  const normalizedDistance = coordinateDistance / viewportDiagonal;
+  const normalizedDistance = score.coordinateDistance / viewportDiagonal;
 
   return {
-    points: scoreFromNormalizedDistance(normalizedDistance),
+    points: score.points,
     maximum: MAX_ROUND_SCORE,
-    coordinateDistance,
+    coordinateDistance: score.coordinateDistance,
     normalizedDistance,
   };
 }
 
 /**
- * Experimental scoring used only by Generator Lab. `halfDistance` is a
+ * Shared scoring for the game and Generator Lab. `halfDistance` is a
  * fraction of the overview diagonal and `fullScoreTolerance` is a fraction of
  * one question-screen diagonal.
  */

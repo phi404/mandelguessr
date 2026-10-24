@@ -148,66 +148,64 @@ test("boundary-cell selection is reproducible, global, and technically valid", a
   }
 });
 
-test("scoring is monotonic and invariant to magnification and position", async () => {
-  const { MAX_ROUND_SCORE, scoreFromNormalizedDistance, scoreGuess } = await importTypeScriptModule(
+test("public scoring uses configured map-distance decay and question-relative tolerance", async () => {
+  const { MAX_ROUND_SCORE, SCORING_RULESET, scoreGuess, scoreLabGuess } = await importTypeScriptModule(
     "../app/game/score-guess.ts",
   );
-  const answer = { re: -0.75, im: 0.1 };
-  const camera = { ...answer, centerRe: answer.re, centerIm: answer.im, viewportWidth: 0.35 };
-  const diagonal = Math.hypot(camera.viewportWidth, camera.viewportWidth / 1.6);
+  const { SCORE_CONFIG, SCORE_CONFIG_RATIOS } = await importTypeScriptModule(
+    "../app/game/score-config.ts",
+  );
+  const { MANDELBROT_OVERVIEW_CAMERA, mandelbrotOverviewDiagonal, questionViewportGeometry } =
+    await importTypeScriptModule("../app/fractal/mandelbrot-domain.ts");
+  const answer = { re: 0, im: 0 };
+  const overviewDiagonal = mandelbrotOverviewDiagonal();
+  const { halfDistance: h, fullScoreTolerance: tau } = SCORE_CONFIG_RATIOS;
+  assert.deepEqual(SCORE_CONFIG, { halfDistance: 3, fullScoreTolerance: 3 });
+  assert.equal(SCORING_RULESET.id, "map-distance-v2-h3-tau3");
 
-  assert.equal(scoreGuess(camera, answer, answer).points, MAX_ROUND_SCORE);
+  const sameScreenErrorPoints = [];
+  for (const magnification of [10, 100, 10000]) {
+    const camera = {
+      ...MANDELBROT_OVERVIEW_CAMERA,
+      viewportWidth: MANDELBROT_OVERVIEW_CAMERA.viewportWidth / magnification,
+    };
+    const diagonal = questionViewportGeometry(magnification).diagonal;
+    assert.equal(scoreGuess(camera, answer, answer).points, MAX_ROUND_SCORE);
 
-  const normalizedDistances = [0.05, 0.2, 0.65, 1.5, 3];
-  const points = normalizedDistances.map((distance) =>
-    scoreGuess(
-      camera,
-      { re: answer.re + distance * diagonal, im: answer.im },
-      answer,
-    ).points,
-  );
-  assert.deepEqual(points, [...points].sort((a, b) => b - a));
-  assert.equal(scoreFromNormalizedDistance(0), 5000);
-  assert.equal(scoreFromNormalizedDistance(1), 2500);
-  assert.equal(scoreFromNormalizedDistance(2), 1250);
-  assert.equal(scoreFromNormalizedDistance(3), 625);
-  assert.equal(points[2], Math.round(5000 * 2 ** -0.65));
-  assert.ok(points.at(-1) < 1000);
+    const points = [0, 0.000001, 0.003, h, 2 * h, 3 * h].map((r) => {
+      const guess = { re: overviewDiagonal * r, im: 0 };
+      const score = scoreGuess(camera, guess, answer);
+      const expected = r * magnification <= tau ? 5000 : Math.round(5000 * 2 ** (-r / h));
+      assert.equal(score.points, expected);
+      assert.equal(score.points, scoreLabGuess(guess, answer, magnification).points);
+      assert.ok(Math.abs(score.normalizedDistance - r * magnification) < 1e-12);
+      return score.points;
+    });
+    assert.deepEqual(points, [...points].sort((a, b) => b - a));
+    assert.deepEqual(points.slice(-3), [2500, 1250, 625]);
 
-  const deepCamera = { ...camera, viewportWidth: camera.viewportWidth / 30 };
-  const deepDiagonal = Math.hypot(
-    deepCamera.viewportWidth,
-    deepCamera.viewportWidth / 1.6,
-  );
-  const shallowScore = scoreGuess(
-    camera,
-    { re: answer.re + 0.4 * diagonal, im: answer.im },
-    answer,
-  );
-  const deepScore = scoreGuess(
-    deepCamera,
-    { re: answer.re + 0.4 * deepDiagonal, im: answer.im },
-    answer,
-  );
-  assert.equal(shallowScore.points, deepScore.points);
-  assert.ok(
-    Math.abs(
-      shallowScore.normalizedDistance - deepScore.normalizedDistance,
-    ) < 1e-12,
-  );
+    for (const fraction of [0.999999, 1, 1.000001]) {
+      const distance = (overviewDiagonal * tau / magnification) * fraction;
+      const score = scoreGuess(camera, { re: distance, im: 0 }, answer);
+      const expected = distance / overviewDiagonal * magnification <= tau
+        ? 5000 : Math.round(5000 * 2 ** (-(distance / overviewDiagonal) / h));
+      assert.equal(score.points, expected);
+      if (fraction < 1) assert.equal(score.points, 5000);
+      if (fraction > 1) {
+        assert.equal(scoreLabGuess({ re: distance, im: 0 }, answer, magnification).usedFullScoreTolerance, false);
+      }
+    }
 
-  const translatedAnswer = { re: 0.2, im: -0.6 };
-  const translatedCamera = {
-    centerRe: translatedAnswer.re,
-    centerIm: translatedAnswer.im,
-    viewportWidth: camera.viewportWidth,
-  };
-  const translatedScore = scoreGuess(
-    translatedCamera,
-    { re: translatedAnswer.re + 0.4 * diagonal, im: translatedAnswer.im },
-    translatedAnswer,
-  );
-  assert.equal(shallowScore.points, translatedScore.points);
+    const guess = { re: 0.4 * diagonal, im: 0 };
+    const score = scoreGuess(camera, guess, answer);
+    sameScreenErrorPoints.push(score.points);
+    const translatedAnswer = { re: 0.2, im: -0.6 };
+    assert.equal(scoreGuess(camera, {
+      re: translatedAnswer.re + guess.re,
+      im: translatedAnswer.im,
+    }, translatedAnswer).points, score.points);
+  }
+  assert.deepEqual(sameScreenErrorPoints, [1984, 4559, 4995]);
 });
 
 test("exploration zoom limits scale with the selected question", async () => {
