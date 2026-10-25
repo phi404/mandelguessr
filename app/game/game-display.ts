@@ -10,6 +10,8 @@ export function targetOf(question: PrototypeQuestion): ComplexCoordinate {
   return {
     re: question.camera.centerRe,
     im: question.camera.centerIm,
+    ...(question.camera.centerReLow ? { reLow: question.camera.centerReLow } : {}),
+    ...(question.camera.centerImLow ? { imLow: question.camera.centerImLow } : {}),
   };
 }
 

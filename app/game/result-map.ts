@@ -1,4 +1,5 @@
 import type { Camera, ComplexCoordinate } from "../fractal/types";
+import { ddAdd, ddMultiply, ddNumber, ddSubtract } from "../fractal/double-double";
 
 export type NormalizedPoint = {
   x: number;
@@ -20,13 +21,15 @@ export function fitResultCamera(
 ): Camera {
   const usableFraction = 1 - RESULT_MAP_PADDING * 2;
   const safeHeightRatio = Math.max(viewportHeightRatio, 0.01);
-  const horizontalWidth = Math.abs(guess.re - target.re) / usableFraction;
-  const verticalWidth = Math.abs(guess.im - target.im) /
+  const horizontalWidth = Math.abs(ddNumber(ddSubtract([guess.re,guess.reLow ?? 0],[target.re,target.reLow ?? 0]))) / usableFraction;
+  const verticalWidth = Math.abs(ddNumber(ddSubtract([guess.im,guess.imLow ?? 0],[target.im,target.imLow ?? 0]))) /
     (safeHeightRatio * usableFraction);
+  const re = ddMultiply(ddAdd([guess.re,guess.reLow ?? 0],[target.re,target.reLow ?? 0]),[0.5,0]);
+  const im = ddMultiply(ddAdd([guess.im,guess.imLow ?? 0],[target.im,target.imLow ?? 0]),[0.5,0]);
 
   return {
-    centerRe: (guess.re + target.re) / 2,
-    centerIm: (guess.im + target.im) / 2,
+    centerRe: re[0], ...(re[1] ? { centerReLow: re[1] } : {}),
+    centerIm: im[0], ...(im[1] ? { centerImLow: im[1] } : {}),
     viewportWidth: Math.max(
       minimumViewportWidth,
       horizontalWidth,

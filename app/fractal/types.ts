@@ -4,6 +4,8 @@ import type { MandelbrotPaletteId } from "./mandelbrot-palettes";
 export type Camera = {
   centerRe: number;
   centerIm: number;
+  centerReLow?: number;
+  centerImLow?: number;
   viewportWidth: number;
 };
 
@@ -12,7 +14,7 @@ export type ViewSnapshot = Camera & {
   iterations: number;
   pixelWidth: number;
   pixelHeight: number;
-  precision: "float32" | "double-single";
+  precision: "float32" | "double-single" | "perturbation";
   quality: "interactive" | "preview" | "full";
   rendererSpecVersion: typeof MANDELBROT_RENDERER_SPEC_VERSION;
   paletteId: MandelbrotPaletteId;
@@ -22,6 +24,8 @@ export type ViewSnapshot = Camera & {
 export type ComplexCoordinate = {
   re: number;
   im: number;
+  reLow?: number;
+  imLow?: number;
 };
 
 export type ViewportInteraction = {

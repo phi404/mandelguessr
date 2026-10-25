@@ -82,7 +82,7 @@ export function PlayScreen({
 }) {
   const { t } = useLanguage();
   const mapCenter = mapView
-    ? { re: mapView.centerRe, im: mapView.centerIm }
+    ? { re: mapView.centerRe, im: mapView.centerIm, reLow: mapView.centerReLow, imLow: mapView.centerImLow }
     : null;
   const target = targetOf(question);
   const questionMeta = questionView && gameRules.questionInspectAllowed

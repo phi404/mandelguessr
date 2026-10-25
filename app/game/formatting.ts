@@ -1,18 +1,15 @@
 import type { ComplexCoordinate } from "../fractal/types";
+import { ddToFixed } from "../fractal/double-double";
 
 function coordinateDigits(zoom: number) {
-  return Math.max(6, Math.min(14, 6 + Math.floor(Math.log10(zoom))));
-}
-
-function formatCoordinate(value: number, zoom: number) {
-  const formatted = value.toFixed(coordinateDigits(zoom));
-  return Number(formatted) === 0 ? formatted.replace(/^-/, "") : formatted;
+  return Math.max(6, Math.min(28, 6 + Math.floor(Math.log10(zoom))));
 }
 
 export function formatComplex(coordinate: ComplexCoordinate, zoom: number) {
-  const imaginary = formatCoordinate(Math.abs(coordinate.im), zoom);
-  const sign = coordinate.im < 0 && Number(imaginary) !== 0 ? "−" : "+";
-  return `${formatCoordinate(coordinate.re, zoom)} ${sign} ${imaginary}i`;
+  const digits = coordinateDigits(zoom);
+  const real = ddToFixed([coordinate.re, coordinate.reLow ?? 0], digits);
+  const imaginary = ddToFixed([coordinate.im, coordinate.imLow ?? 0], digits);
+  return `${real} ${imaginary.startsWith("-") ? "−" : "+"} ${imaginary.replace(/^-/, "")}i`;
 }
 
 function superscript(value: number) {
@@ -42,5 +39,9 @@ export function formatCoordinateDistance(distance: number) {
 }
 
 export function formatZoom(zoom: number) {
+  if (zoom >= 1e7) {
+    const [coefficient, exponent] = zoom.toExponential(2).split("e");
+    return `${Number(coefficient)} × 10${superscript(Number(exponent))}`;
+  }
   return zoom.toLocaleString(undefined, { maximumFractionDigits: 1 });
 }

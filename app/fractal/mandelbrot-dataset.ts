@@ -17,6 +17,8 @@ export type MandelbrotDatasetPoint = {
   id: string;
   centerRe: number;
   centerIm: number;
+  centerReLow?: number;
+  centerImLow?: number;
   zoom: number;
   source?: Record<string, unknown>;
 };
@@ -131,6 +133,8 @@ export async function* generateMandelbrotDatasetSamples(
         const params = {
           centerRe: point.centerRe,
           centerIm: point.centerIm,
+          ...(point.centerReLow !== undefined ? {centerReLow:point.centerReLow} : {}),
+          ...(point.centerImLow !== undefined ? {centerImLow:point.centerImLow} : {}),
           zoom: point.zoom,
           ...config,
         };
@@ -182,6 +186,8 @@ export function validateMandelbrotDatasetInput(
     validateMandelbrotRenderParams({
       centerRe: point.centerRe,
       centerIm: point.centerIm,
+          ...(point.centerReLow !== undefined ? {centerReLow:point.centerReLow} : {}),
+          ...(point.centerImLow !== undefined ? {centerImLow:point.centerImLow} : {}),
       zoom: point.zoom,
       ...config,
     });

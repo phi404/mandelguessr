@@ -209,16 +209,16 @@ test("public scoring uses configured map-distance decay and question-relative to
   assert.deepEqual(sameScreenErrorPoints, [1984, 4559, 4995]);
 });
 
-test("exploration zoom limits scale with the selected question", async () => {
+test("exploration zoom limits are independent of the selected question", async () => {
   const { explorationZoomLimit } = await importTypeScriptModule(
     "../app/game/game-rules.ts",
   );
 
-  assert.equal(explorationZoomLimit(10), 40);
-  assert.equal(explorationZoomLimit(30), 120);
-  assert.equal(explorationZoomLimit(1000), 4000);
-  assert.equal(explorationZoomLimit(10000), 40000);
-  assert.equal(explorationZoomLimit(20000), 40000);
+  assert.equal(explorationZoomLimit(), 1e20);
+  assert.equal(explorationZoomLimit(), 1e20);
+  assert.equal(explorationZoomLimit(), 1e20);
+  assert.equal(explorationZoomLimit(), 1e20);
+  assert.equal(explorationZoomLimit(), 1e20);
 });
 
 test("Generator Lab CURRENT retains the boundary-grid baseline and every CPU rule is reproducible", async () => {
@@ -321,14 +321,14 @@ test("Generator Lab scoring follows h and tau definitions", async () => {
   );
 });
 
-test("Renderer Spec v1 fixes the official smooth-index pipeline", async () => {
+test("Renderer Spec v2 preserves the official smooth-index pipeline", async () => {
   const domain = await importTypeScriptModule(
     "../app/fractal/mandelbrot-domain.ts",
   );
   const { fastFragmentShaderSource, preciseFragmentShaderSource } =
     await importTypeScriptModule("../app/fractal/mandelbrot-shaders.ts");
 
-  assert.equal(domain.MANDELBROT_RENDERER_SPEC_VERSION, "mandelbrot-renderer-v1");
+  assert.equal(domain.MANDELBROT_RENDERER_SPEC_VERSION, "mandelbrot-renderer-v2");
   assert.equal(domain.MANDELBROT_POWER, 2);
   assert.equal(domain.MANDELBROT_FORMULA_BAILOUT_SQUARED, 10_000);
   assert.equal(domain.MANDELBROT_SMOOTH_BAILOUT, 128);
@@ -338,7 +338,7 @@ test("Renderer Spec v1 fixes the official smooth-index pipeline", async () => {
     [1, 10, 100, 1_000, 10_000, 100_000].map(
       domain.fullQualityIterationsForZoom,
     ),
-    [500, 840, 1460, 2360, 3540, 5000],
+    [500, 1050, 2100, 3650, 5700, 8250],
   );
 
   for (const source of [fastFragmentShaderSource, preciseFragmentShaderSource]) {

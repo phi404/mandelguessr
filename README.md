@@ -6,6 +6,8 @@
 
 ドラッグで移動、ホイールやピンチで拡大。地点を選んで **GUESS** すると、正解との距離に応じて最大5,000点を獲得できます。**EXPLORE** では自由に集合を眺められます。**SETTINGS** から9言語を選択できます。WebGL 2対応のブラウザが必要です。
 
+ゲーム中の探索とEXPLOREは最大10²⁰倍まで拡大できます。高倍率では摂動法を使い、段階的に描画します。
+
 ## 開発
 
 Node.js 22.13以降を使用します。
@@ -35,5 +37,7 @@ npm run check
 ## クレジット
 
 制作: [ふぁい.](https://github.com/phi404)
+
+高倍率描画の参考: [Claude Heiland-Allen, Deep Zoom](https://mathr.co.uk/web/deep-zoom.html)。
 
 パレットの出典とライセンスは[ATTRIBUTION.md](app/fractal/palettes/ATTRIBUTION.md)に記載しています。

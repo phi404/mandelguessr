@@ -27,7 +27,7 @@ void main() {
 }
 `;
 
-const sharedColorFunctions = `
+export const sharedColorFunctions = `
 uniform sampler2D u_palette;
 uniform float u_paletteSize;
 
@@ -130,6 +130,34 @@ void main() {
 }
 `;
 
+export const doubleSingleFunctions = `
+// A run-time bit mask forces binary32 rounding across driver optimizations.
+uniform highp uint u_roundMask;
+float dsRound(float value) { return uintBitsToFloat(floatBitsToUint(value) & u_roundMask); }
+vec2 dsAdd(vec2 a, vec2 b) {
+  float sum = dsRound(a.x + b.x);
+  float virtualB = dsRound(sum - a.x);
+  float error = dsRound(dsRound(a.x - dsRound(sum - virtualB)) + dsRound(b.x - virtualB));
+  error = dsRound(error + dsRound(a.y + b.y));
+  float high = dsRound(sum + error);
+  return vec2(high, dsRound(error - dsRound(high - sum)));
+}
+vec2 dsSubtract(vec2 a, vec2 b) { return dsAdd(a, -b); }
+vec2 dsMultiply(vec2 a, vec2 b) {
+  float product = dsRound(a.x * b.x);
+  float highA = uintBitsToFloat(floatBitsToUint(a.x) & 0xfffff000u);
+  float highB = uintBitsToFloat(floatBitsToUint(b.x) & 0xfffff000u);
+  float lowA = dsRound(a.x - highA);
+  float lowB = dsRound(b.x - highB);
+  float error = dsRound(dsRound(dsRound(highA * highB) - product) + dsRound(highA * lowB));
+  error = dsRound(error + dsRound(lowA * highB));
+  error = dsRound(error + dsRound(lowA * lowB));
+  error = dsRound(error + dsRound(dsRound(a.x * b.y) + dsRound(a.y * b.x)));
+  float high = dsRound(product + error);
+  return vec2(high, dsRound(error - dsRound(high - product)));
+}
+`;
+
 export const preciseFragmentShaderSource = `#version 300 es
 precision highp float;
 precision highp int;
@@ -140,47 +168,20 @@ out vec4 outColor;
 uniform vec2 u_centerHigh;
 uniform vec2 u_centerLow;
 uniform vec2 u_viewSize;
+uniform vec2 u_viewSizeLow;
 uniform int u_maxIterations;
 
 const int MAX_ITERATIONS = ${MANDELBROT_MAX_ITERATIONS};
 const float SPLITTER = 4097.0;
 ${sharedColorFunctions}
 
-// A double-single value is stored as vec2(high, low). The two float values
-// retain coordinate differences that one WebGL float would round away.
-vec2 dsAdd(vec2 a, vec2 b) {
-  float sum = a.x + b.x;
-  float virtualB = sum - a.x;
-  float error = (a.x - (sum - virtualB)) + (b.x - virtualB);
-  error += a.y + b.y;
-  float high = sum + error;
-  return vec2(high, error - (high - sum));
-}
-
-vec2 dsSubtract(vec2 a, vec2 b) {
-  return dsAdd(a, -b);
-}
-
-vec2 dsMultiply(vec2 a, vec2 b) {
-  float product = a.x * b.x;
-  float splitA = SPLITTER * a.x;
-  float highA = splitA - (splitA - a.x);
-  float lowA = a.x - highA;
-  float splitB = SPLITTER * b.x;
-  float highB = splitB - (splitB - b.x);
-  float lowB = b.x - highB;
-  float error = ((highA * highB - product) + highA * lowB + lowA * highB)
-    + lowA * lowB;
-  error += a.x * b.y + a.y * b.x;
-  float high = product + error;
-  return vec2(high, error - (high - product));
-}
+${doubleSingleFunctions}
 
 void main() {
   vec2 centerX = vec2(u_centerHigh.x, u_centerLow.x);
   vec2 centerY = vec2(u_centerHigh.y, u_centerLow.y);
-  vec2 cX = dsAdd(centerX, vec2((v_uv.x - 0.5) * u_viewSize.x, 0.0));
-  vec2 cY = dsAdd(centerY, vec2((v_uv.y - 0.5) * u_viewSize.y, 0.0));
+  vec2 cX = dsAdd(centerX, dsMultiply(vec2(v_uv.x-0.5,0.0),vec2(u_viewSize.x,u_viewSizeLow.x)));
+  vec2 cY = dsAdd(centerY, dsMultiply(vec2(v_uv.y-0.5,0.0),vec2(u_viewSize.y,u_viewSizeLow.y)));
 
   vec2 zX = vec2(0.0);
   vec2 zY = vec2(0.0);

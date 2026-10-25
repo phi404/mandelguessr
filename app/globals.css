@@ -245,7 +245,7 @@ summary::-webkit-details-marker { display: none; }
 .breakdown-title .mean-distance { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px; margin-top: 10px; }
 .mean-distance strong { color: var(--ink); font-size: 16px; font-weight: 500; font-variant-numeric: tabular-nums; }
 .explore-coordinate { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.explore-coordinate code { color: var(--ink); font-size: 12px; white-space: nowrap; }
+.explore-coordinate code { color: var(--ink); font-size: 12px; white-space: normal; overflow-wrap: anywhere; line-height: 1.4; }
 .explore-hints { display: flex; gap: 20px; margin-left: auto; color: var(--muted); }
 .explore-hints > span { display: flex; align-items: center; gap: 7px; }
 

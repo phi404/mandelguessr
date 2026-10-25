@@ -7,7 +7,10 @@ import {
   MANDELBROT_PALETTES,
   type MandelbrotPaletteId,
 } from "./mandelbrot-palettes";
-import { MandelbrotWebGLPipeline } from "./MandelbrotWebGLPipeline";
+import { MandelbrotWebGLPipeline, MANDELBROT_PRECISE_RENDER_ZOOM } from "./MandelbrotWebGLPipeline";
+import { ProgressiveMandelbrotPipeline } from "./ProgressiveMandelbrotPipeline";
+import { ReferenceOrbitClient } from "./ReferenceOrbitClient";
+import { PERTURBATION_ZOOM } from "./reference-orbit";
 import {
   cameraForAnchoredViewportWidth,
   clampViewportWidth,
@@ -42,6 +45,7 @@ export type RendererOptions = {
   onViewChange?: (snapshot: ViewSnapshot) => void;
   onSelect?: (coordinate: ComplexCoordinate) => void;
   paletteId?: MandelbrotPaletteId;
+  onError?: (error: Error) => void;
 };
 
 const MAX_DEVICE_PIXEL_RATIO = 3;
@@ -78,6 +82,11 @@ export class WebGLMandelbrotRenderer {
   private gestureWasMultiTouch = false;
   private readonly pointerPositions = new Map<number, { x: number; y: number }>();
   private paletteId: MandelbrotPaletteId;
+  private progressive: ProgressiveMandelbrotPipeline | null = null;
+  private readonly references = new ReferenceOrbitClient();
+  private progressFrame: number | null = null;
+  private renderGeneration = 0;
+  private readonly onError?: (error: Error) => void;
 
   constructor(canvas: HTMLCanvasElement, options: RendererOptions = {}) {
     this.canvas = canvas;
@@ -97,6 +106,7 @@ export class WebGLMandelbrotRenderer {
     };
     this.onViewChange = options.onViewChange;
     this.onSelect = options.onSelect;
+    this.onError = options.onError;
 
     const gl = canvas.getContext("webgl2", {
       antialias: false,
@@ -125,11 +135,13 @@ export class WebGLMandelbrotRenderer {
     this.beginRefinedRender();
   }
 
-  focus(centerRe: number, centerIm: number, zoom: number) {
+  focus(centerRe: number, centerIm: number, zoom: number, centerReLow = 0, centerImLow = 0) {
     const requestedWidth = zoomToViewportWidth(zoom);
     this.camera = {
       centerRe,
       centerIm,
+      centerReLow,
+      centerImLow,
       viewportWidth: clampViewportWidth(requestedWidth, this.zoomLimits),
     };
     this.beginRefinedRender();
@@ -142,6 +154,10 @@ export class WebGLMandelbrotRenderer {
   }
 
   dispose() {
+    this.renderGeneration++;
+    this.stopProgress();
+    this.references.dispose();
+    this.progressive?.dispose();
     this.resizeObserver.disconnect();
     this.unbindEvents();
     this.clearRefinementTimers();
@@ -380,6 +396,9 @@ export class WebGLMandelbrotRenderer {
   }
 
   private requestRender(quality: RenderQuality) {
+    this.renderGeneration++;
+    this.stopProgress();
+    if (this.canvas.dataset) this.canvas.dataset.renderStatus = "queued";
     this.requestedQuality = quality;
     if (this.frameRequest !== null) return;
 
@@ -398,20 +417,61 @@ export class WebGLMandelbrotRenderer {
 
     const zoom = viewportWidthToZoom(this.camera.viewportWidth);
     const fullIterations = fullQualityIterationsForZoom(zoom);
-    const iterations = quality === "interactive"
-      ? Math.max(140, Math.min(380, Math.round(fullIterations * 0.45)))
-      : quality === "preview"
-        ? Math.max(320, Math.round(fullIterations * 0.74))
-        : fullIterations;
+    const iterations = quality === "interactive" ? Math.min(fullIterations, 2048)
+      : quality === "preview" ? Math.min(fullIterations, 8192) : fullIterations;
+    if (zoom >= MANDELBROT_PRECISE_RENDER_ZOOM) {
+      const generation = this.renderGeneration;
+      const camera = { ...this.camera };
+      const params = { ...camera, pixelWidth: canvas.width, pixelHeight: canvas.height,
+        paletteId: this.paletteId, maxIterations: iterations };
+      this.canvas.dataset.precision = zoom >= PERTURBATION_ZOOM ? "perturbation" : "double-single";
+      this.canvas.dataset.iterations = String(iterations);
+      this.canvas.dataset.zoom = String(zoom);
+      this.canvas.dataset.renderStatus = "rendering";
+      this.onViewChange?.({ ...camera, zoom, iterations, pixelWidth: canvas.width, pixelHeight: canvas.height,
+        precision: zoom >= PERTURBATION_ZOOM ? "perturbation" : "double-single", quality,
+        rendererSpecVersion: MANDELBROT_RENDERER_SPEC_VERSION, paletteId: this.paletteId,
+        paletteVersion: MANDELBROT_PALETTES[this.paletteId].version });
+      void (async () => {
+        try {
+          this.progressive ??= new ProgressiveMandelbrotPipeline(gl, this.pipeline);
+          this.progressive.present(camera);
+          const [reference] = await Promise.all([
+            zoom >= PERTURBATION_ZOOM ? this.references.reference(camera, fullIterations) : Promise.resolve(null),
+            this.progressive.ready,
+          ]);
+          if (generation !== this.renderGeneration) return;
+          this.progressive.begin(params, reference);
+          const advance = () => {
+            this.progressFrame = null;
+            if (generation !== this.renderGeneration || gl.isContextLost()) return;
+            try {
+              if (this.progressive!.step()) void this.finishProgress(generation, camera, iterations);
+              else this.progressFrame = requestAnimationFrame(advance);
+            } catch (error) { this.reportError(error); }
+          };
+          this.progressFrame = requestAnimationFrame(advance);
+        } catch (error) { if (generation === this.renderGeneration) this.reportError(error); }
+      })();
+      return;
+    }
+    this.references.cancel();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     const renderResult = this.pipeline.render({
       centerRe: this.camera.centerRe,
       centerIm: this.camera.centerIm,
+      centerReLow: this.camera.centerReLow,
+      centerImLow: this.camera.centerImLow,
       viewportWidth: this.camera.viewportWidth,
       pixelWidth: canvas.width,
       pixelHeight: canvas.height,
       paletteId: this.paletteId,
       maxIterations: iterations,
     });
+    this.canvas.dataset.precision = renderResult.precision;
+    this.canvas.dataset.iterations = String(iterations);
+    this.canvas.dataset.zoom = String(zoom);
+    this.canvas.dataset.renderStatus = "ready";
 
     this.onViewChange?.({
       ...this.camera,
@@ -425,6 +485,32 @@ export class WebGLMandelbrotRenderer {
       paletteId: this.paletteId,
       paletteVersion: MANDELBROT_PALETTES[this.paletteId].version,
     });
+  }
+
+  private stopProgress() {
+    if (this.progressFrame !== null) cancelAnimationFrame(this.progressFrame);
+    this.progressFrame = null;
+    this.progressive?.cancel();
+  }
+
+  private async finishProgress(generation: number, camera: Camera, iterations: number) {
+    try {
+      const pixels = this.progressive!.takeRepairs();
+      this.canvas.dataset.repairs = String(pixels.length);
+      for (let start = 0; start < pixels.length; start += 64) {
+        const batch = pixels.slice(start, start+64);
+        const values = await this.references.repair(camera, batch.flatMap(pixel => [pixel.offsetRe,pixel.offsetIm]), iterations);
+        if (generation !== this.renderGeneration) return;
+        this.progressive!.applyRepairs(batch, values);
+      }
+      if (generation === this.renderGeneration) this.canvas.dataset.renderStatus = "ready";
+    } catch (error) { if (generation === this.renderGeneration) this.reportError(error); }
+  }
+
+  private reportError(error: unknown) {
+    if (error instanceof DOMException && error.name === "AbortError") return;
+    this.canvas.dataset.renderStatus = "error";
+    this.onError?.(error instanceof Error ? error : new Error(String(error)));
   }
 
   private coordinateAt(clientX: number, clientY: number): ComplexCoordinate {
@@ -442,7 +528,8 @@ export class WebGLMandelbrotRenderer {
       : quality === "preview"
         ? PREVIEW_RESOLUTION_SCALE
         : 1;
-    const pixelBudget = quality === "interactive"
+    const deep = viewportWidthToZoom(this.camera.viewportWidth) >= MANDELBROT_PRECISE_RENDER_ZOOM;
+    const pixelBudget = deep ? (quality === "interactive" ? 120_000 : quality === "preview" ? 320_000 : 700_000) : quality === "interactive"
       ? INTERACTIVE_PIXEL_BUDGET
       : quality === "preview"
         ? PREVIEW_PIXEL_BUDGET

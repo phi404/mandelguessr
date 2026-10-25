@@ -1,13 +1,14 @@
 export const MANDELBROT_VIEW_ASPECT_RATIO = 1.6;
 
 /** Any change to these formula/color-index constants requires a new spec. */
-export const MANDELBROT_RENDERER_SPEC_VERSION = "mandelbrot-renderer-v1";
+export const MANDELBROT_RENDERER_SPEC_VERSION = "mandelbrot-renderer-v2";
 export const MANDELBROT_POWER = 2;
 export const MANDELBROT_FORMULA_BAILOUT_SQUARED = 10_000;
 export const MANDELBROT_SMOOTH_BAILOUT = 128;
 export const MANDELBROT_SMOOTH_INDEX_SCALE = 0.05;
 export const MANDELBROT_COLOR_DENSITY = 0.42;
-export const MANDELBROT_MAX_ITERATIONS = 5200;
+export const MANDELBROT_MAX_ITERATIONS = 32768;
+export const MANDELBROT_MAX_ZOOM = 1e20;
 
 export const MANDELBROT_OVERVIEW_CAMERA = {
   centerRe: -0.55,
@@ -59,7 +60,7 @@ export function questionViewportGeometry(magnification: number) {
 export function fullQualityIterationsForZoom(zoom: number) {
   const logZoom = Math.max(0, Math.log10(zoom));
   return Math.min(
-    5000,
-    Math.max(500, Math.round(500 + 200 * logZoom + 140 * logZoom ** 2)),
+    MANDELBROT_MAX_ITERATIONS,
+    Math.max(500, Math.round(500 + 300 * logZoom + 250 * logZoom ** 2)),
   );
 }

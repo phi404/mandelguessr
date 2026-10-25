@@ -1,3 +1,4 @@
+import { MANDELBROT_MAX_ZOOM } from "../fractal/mandelbrot-domain";
 import type { ViewportInteraction, ZoomLimits } from "../fractal/types";
 
 export type GameRules = {
@@ -37,8 +38,7 @@ export const ROUND_COUNT_OPTIONS = [1, 3, 5, 10];
 export const GAME_RULESET_VERSION = "prototype-09";
 
 export const EXPLORATION_MIN_ZOOM = 0.8;
-export const EXPLORATION_ZOOM_MULTIPLIER = 4;
-export const EXPLORATION_MAX_ZOOM = 40_000;
+export const EXPLORATION_MAX_ZOOM = MANDELBROT_MAX_ZOOM;
 
 export function isValidMagnification(value: number) {
   return (
@@ -103,17 +103,14 @@ export function validateQuestionGenerationRules(
   }
 }
 
-export function explorationZoomLimit(questionMagnification: number) {
-  return Math.min(
-    EXPLORATION_MAX_ZOOM,
-    Math.max(40, questionMagnification * EXPLORATION_ZOOM_MULTIPLIER),
-  );
+export function explorationZoomLimit() {
+  return EXPLORATION_MAX_ZOOM;
 }
 
 export function createQuestionZoomLimits(magnification: number): ZoomLimits {
   return {
     min: magnification,
-    max: explorationZoomLimit(magnification),
+    max: explorationZoomLimit(),
   };
 }
 

@@ -1,4 +1,5 @@
-import { MANDELBROT_OVERVIEW_CAMERA } from "./mandelbrot-domain";
+import { MANDELBROT_MAX_ZOOM, MANDELBROT_OVERVIEW_CAMERA } from "./mandelbrot-domain";
+import { ddAdd, ddNumber, ddSubtract } from "./double-double";
 import type {
   Camera,
   ComplexCoordinate,
@@ -26,7 +27,7 @@ export const INITIAL_CAMERA: Camera = {
 
 export const DEFAULT_ZOOM_LIMITS: ZoomLimits = {
   min: 0.7,
-  max: 100_000,
+  max: MANDELBROT_MAX_ZOOM,
 };
 
 export function viewportHeight(
@@ -44,10 +45,9 @@ export function screenToComplex(
   const normalizedX = point.x / Math.max(size.width, 1) - 0.5;
   const normalizedY = 0.5 - point.y / Math.max(size.height, 1);
   const height = viewportHeight(camera.viewportWidth, size);
-  return {
-    re: camera.centerRe + normalizedX * camera.viewportWidth,
-    im: camera.centerIm + normalizedY * height,
-  };
+  const re = ddAdd([camera.centerRe, camera.centerReLow ?? 0], [normalizedX * camera.viewportWidth, 0]);
+  const im = ddAdd([camera.centerIm, camera.centerImLow ?? 0], [normalizedY * height, 0]);
+  return { re: re[0], im: im[0], reLow: re[1], imLow: im[1] };
 }
 
 export function complexToScreen(
@@ -56,8 +56,8 @@ export function complexToScreen(
   size: ViewportSize,
 ): ProjectedCoordinate {
   const height = viewportHeight(camera.viewportWidth, size);
-  const x = 0.5 + (coordinate.re - camera.centerRe) / camera.viewportWidth;
-  const y = 0.5 - (coordinate.im - camera.centerIm) / height;
+  const x = 0.5 + ddNumber(ddSubtract([coordinate.re, coordinate.reLow ?? 0], [camera.centerRe, camera.centerReLow ?? 0])) / camera.viewportWidth;
+  const y = 0.5 - ddNumber(ddSubtract([coordinate.im, coordinate.imLow ?? 0], [camera.centerIm, camera.centerImLow ?? 0])) / height;
   return {
     x,
     y,
@@ -93,12 +93,8 @@ export function panCameraByScreenDelta(
   delta: ScreenCoordinate,
   size: ViewportSize,
 ): Camera {
-  const height = viewportHeight(camera.viewportWidth, size);
-  return {
-    ...camera,
-    centerRe: camera.centerRe - (delta.x / size.width) * camera.viewportWidth,
-    centerIm: camera.centerIm + (delta.y / size.height) * height,
-  };
+  const center = screenToComplex({ x: size.width / 2 - delta.x, y: size.height / 2 - delta.y }, camera, size);
+  return { ...camera, centerRe: center.re, centerIm: center.im, centerReLow: center.reLow, centerImLow: center.imLow };
 }
 
 export function cameraForAnchoredViewportWidth(
@@ -112,11 +108,9 @@ export function cameraForAnchoredViewportWidth(
   const normalizedX = nextAnchor.x / size.width - 0.5;
   const normalizedY = 0.5 - nextAnchor.y / size.height;
   const nextHeight = viewportHeight(nextViewportWidth, size);
-  return {
-    centerRe: anchor.re - normalizedX * nextViewportWidth,
-    centerIm: anchor.im - normalizedY * nextHeight,
-    viewportWidth: nextViewportWidth,
-  };
+  const re = ddAdd([anchor.re, anchor.reLow ?? 0], [-normalizedX * nextViewportWidth, 0]);
+  const im = ddAdd([anchor.im, anchor.imLow ?? 0], [-normalizedY * nextHeight, 0]);
+  return { centerRe: re[0], centerIm: im[0], centerReLow: re[1], centerImLow: im[1], viewportWidth: nextViewportWidth };
 }
 
 export function fixedCenterCorrection(
@@ -124,8 +118,8 @@ export function fixedCenterCorrection(
   fixedCenter: ComplexCoordinate,
 ): ViewSnapshot | null {
   if (
-    Math.abs(snapshot.centerRe - fixedCenter.re) <= 1e-15 &&
-    Math.abs(snapshot.centerIm - fixedCenter.im) <= 1e-15
+    snapshot.centerRe === fixedCenter.re && snapshot.centerIm === fixedCenter.im &&
+    (snapshot.centerReLow ?? 0) === (fixedCenter.reLow ?? 0) && (snapshot.centerImLow ?? 0) === (fixedCenter.imLow ?? 0)
   ) {
     return null;
   }
@@ -134,5 +128,7 @@ export function fixedCenterCorrection(
     ...snapshot,
     centerRe: fixedCenter.re,
     centerIm: fixedCenter.im,
+    ...(fixedCenter.reLow !== undefined ? { centerReLow: fixedCenter.reLow } : snapshot.centerReLow !== undefined ? { centerReLow: 0 } : {}),
+    ...(fixedCenter.imLow !== undefined ? { centerImLow: fixedCenter.imLow } : snapshot.centerImLow !== undefined ? { centerImLow: 0 } : {}),
   };
 }

@@ -41,7 +41,6 @@ import {
   createQuestionZoomLimits,
   DEFAULT_GAME_RULES,
   EXPLORATION_MIN_ZOOM,
-  MAX_MAGNIFICATION,
   explorationZoomLimit,
   isValidMagnification,
   isValidRoundCount,
@@ -79,7 +78,7 @@ import {
 } from "./game/share-game";
 const EXPLORE_ZOOM_LIMITS: ZoomLimits = {
   min: EXPLORATION_MIN_ZOOM,
-  max: explorationZoomLimit(MAX_MAGNIFICATION),
+  max: explorationZoomLimit(),
 };
 
 export function MandelGuessrPrototype() {
@@ -139,8 +138,8 @@ export function MandelGuessrPrototype() {
 
   const explorationZoomLimits = useMemo<ZoomLimits>(() => ({
     min: EXPLORATION_MIN_ZOOM,
-    max: explorationZoomLimit(gameRules.magnification),
-  }), [gameRules.magnification]);
+    max: explorationZoomLimit(),
+  }), []);
   const questionZoomLimits = useMemo(
     () => createQuestionZoomLimits(gameRules.magnification),
     [gameRules.magnification],

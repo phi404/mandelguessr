@@ -54,8 +54,8 @@ function ResultMap({
   const camera = useMemo(() => revealCamera(record), [record]);
   const zoomLimits = useMemo<ZoomLimits>(() => ({
     min: 0.1,
-    max: explorationZoomLimit(record.question.magnification),
-  }), [record.question.magnification]);
+    max: explorationZoomLimit(),
+  }), []);
   const guessMarker = markerPosition(record.guess, view);
   const targetMarker = markerPosition(target, view);
   const connection = guessMarker && targetMarker
@@ -75,6 +75,8 @@ function ResultMap({
       fittedCamera.centerRe,
       fittedCamera.centerIm,
       INITIAL_CAMERA.viewportWidth / fittedCamera.viewportWidth,
+      fittedCamera.centerReLow,
+      fittedCamera.centerImLow,
     );
   }, [record, target, view]);
 

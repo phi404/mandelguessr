@@ -60,6 +60,7 @@ function fakeWebGlContext() {
     uniform2f(location, first, second) {
       uniforms.set(location.name, [first, second]);
     },
+    uniform1ui() {},
     uniform1i(location, value) {
       uniforms.set(location.name, value);
     },
@@ -99,6 +100,7 @@ async function withRenderer(options, run) {
   const canvas = {
     width: 800,
     height: 500,
+    dataset: {},
     clientWidth: 800,
     clientHeight: 500,
     getContext: () => gl,
@@ -466,7 +468,7 @@ test("Game Rules accept current bounds and decimal magnification only", async ()
   assert.equal(rules.parseGameRules(null), null);
   assert.equal(rules.parseGameRules({}), null);
   assert.equal(rules.parseLegacyGameRules({ magnification: 100 }), null);
-  assert.deepEqual(rules.createQuestionZoomLimits(30), { min: 30, max: 120 });
+  assert.deepEqual(rules.createQuestionZoomLimits(30), { min: 30, max: 1e20 });
 });
 
 test("game session fixes generation, rounds, retry, PLAY AGAIN, and overlay transitions", async () => {
@@ -797,7 +799,7 @@ test("Mandelbrot image API is deterministic, versioned, sized, oriented, and val
     const metadata = createMandelbrotSampleMetadata(params);
     assert.deepEqual(metadata, {
       ...params,
-      rendererVersion: "mandelbrot-renderer-v1",
+      rendererVersion: "mandelbrot-renderer-v2",
       paletteVersion: "classic-v2-upr-serialized-phase",
     });
     const sample = generateMandelbrotSample(params);
@@ -820,7 +822,7 @@ test("Mandelbrot image API is deterministic, versioned, sized, oriented, and val
       { ...params, centerRe: Number.POSITIVE_INFINITY },
       { ...params, paletteId: "unknown" },
       { ...params, maxIterations: 0 },
-      { ...params, maxIterations: 5_201 },
+      { ...params, maxIterations: 32_769 },
       { ...params, maxIterations: 4.5 },
     ]) {
       assert.throws(() => validateMandelbrotRenderParams(invalid));
@@ -931,7 +933,7 @@ test("dataset export keeps PNG, JSONL, manifest, cancellation, and one renderer 
         centerIm: 0.1,
         zoom: 30,
         ...config,
-        rendererVersion: "mandelbrot-renderer-v1",
+        rendererVersion: "mandelbrot-renderer-v2",
         paletteVersion: "classic-v2-upr-serialized-phase",
         source: generationSource,
       });

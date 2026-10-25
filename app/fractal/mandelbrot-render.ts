@@ -1,6 +1,7 @@
 import { zoomToViewportWidth } from "./camera";
 import {
   MANDELBROT_MAX_ITERATIONS,
+  MANDELBROT_MAX_ZOOM,
   MANDELBROT_RENDERER_SPEC_VERSION,
 } from "./mandelbrot-domain";
 import {
@@ -9,10 +10,15 @@ import {
   type MandelbrotPaletteId,
 } from "./mandelbrot-palettes";
 import { MandelbrotWebGLPipeline } from "./MandelbrotWebGLPipeline";
+import { repairOrbit } from "./reference-orbit";
+import { samplePaletteRgb } from "./mandelbrot-palettes";
+import { MANDELBROT_COLOR_DENSITY, MANDELBROT_POWER, MANDELBROT_SMOOTH_BAILOUT, MANDELBROT_SMOOTH_INDEX_SCALE } from "./mandelbrot-domain";
 
 export type MandelbrotRenderParams = {
   centerRe: number;
   centerIm: number;
+  centerReLow?: number;
+  centerImLow?: number;
   zoom: number;
   width: number;
   height: number;
@@ -34,7 +40,7 @@ type MandelbrotRenderCanvas = HTMLCanvasElement | OffscreenCanvas;
 
 const WEBGL_CONTEXT_OPTIONS: WebGLContextAttributes = {
   antialias: false,
-  alpha: false,
+  alpha: true,
   depth: false,
   stencil: false,
   powerPreference: "high-performance",
@@ -69,6 +75,8 @@ export class MandelbrotImageRenderer {
     this.pipeline.render({
       centerRe: params.centerRe,
       centerIm: params.centerIm,
+      centerReLow: params.centerReLow,
+      centerImLow: params.centerImLow,
       viewportWidth: zoomToViewportWidth(params.zoom),
       pixelWidth: params.width,
       pixelHeight: params.height,
@@ -86,6 +94,22 @@ export class MandelbrotImageRenderer {
       this.gl.UNSIGNED_BYTE,
       readback,
     );
+    const viewportWidth = zoomToViewportWidth(params.zoom);
+    for (let index = 0; index < params.width*params.height; index++) {
+      if (readback[index*4+3] !== 0) continue;
+      const result = repairOrbit({ ...params, viewportWidth },
+        ((index%params.width+0.5)/params.width-0.5)*viewportWidth,
+        ((Math.floor(index/params.width)+0.5)/params.height-0.5)*viewportWidth*params.height/params.width,
+        params.maxIterations);
+      let rgb = [0,0,0];
+      if (result.iteration) {
+        const smooth = MANDELBROT_SMOOTH_INDEX_SCALE*(result.iteration+
+          (Math.log(Math.log(MANDELBROT_SMOOTH_BAILOUT))-Math.log(Math.log(Math.sqrt(result.magnitudeSquared))))/Math.log(MANDELBROT_POWER));
+        const transferred = Math.log1p(MANDELBROT_COLOR_DENSITY*smooth);
+        rgb = samplePaletteRgb(params.paletteId, transferred>0 ? transferred-Math.floor(transferred) : 0);
+      }
+      readback.set([...rgb,255],index*4);
+    }
 
     return new ImageData(
       flipWebGLRows(readback, params.width, params.height),
@@ -139,11 +163,11 @@ export function createMandelbrotSampleMetadata(
 export function validateMandelbrotRenderParams(
   params: MandelbrotRenderParams,
 ) {
-  if (!Number.isFinite(params.centerRe) || !Number.isFinite(params.centerIm)) {
+  if (![params.centerRe,params.centerIm,params.centerReLow ?? 0,params.centerImLow ?? 0].every(Number.isFinite)) {
     throw new RangeError("centerRe / centerImは有限値で指定してください。");
   }
-  if (!Number.isFinite(params.zoom) || params.zoom <= 0) {
-    throw new RangeError("zoomは0より大きい有限値で指定してください。");
+  if (!Number.isFinite(params.zoom) || params.zoom <= 0 || params.zoom > MANDELBROT_MAX_ZOOM) {
+    throw new RangeError(`zoomは0より大きく${MANDELBROT_MAX_ZOOM}以下の有限値で指定してください。`);
   }
   validatePositiveInteger(params.width, "width");
   validatePositiveInteger(params.height, "height");

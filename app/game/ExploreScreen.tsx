@@ -41,7 +41,7 @@ export function ExploreScreen({
   overlays: ReactNode;
 }) {
   const { t } = useLanguage();
-  const center = view ? { re: view.centerRe, im: view.centerIm } : { re: INITIAL_CAMERA.centerRe, im: INITIAL_CAMERA.centerIm };
+  const center = view ? { re: view.centerRe, im: view.centerIm, reLow: view.centerReLow, imLow: view.centerImLow } : { re: INITIAL_CAMERA.centerRe, im: INITIAL_CAMERA.centerIm };
   return (
     <main className="game-prototype explore-scene screen-enter">
       <GameHeader label={t("explore")} onHome={onHome} onMenu={onMenu} />

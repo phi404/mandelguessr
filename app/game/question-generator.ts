@@ -1,6 +1,5 @@
 import type { Camera, ComplexCoordinate } from "../fractal/types";
 import {
-  fullQualityIterationsForZoom,
   mandelbrotOverviewBounds,
   questionViewportGeometry,
 } from "../fractal/mandelbrot-domain";
@@ -57,16 +56,17 @@ export type CurrentGenerationStats = {
   rejected: number;
 };
 
-export const QUESTION_GENERATOR_VERSION = "distance-guided-visible-v1";
+export const QUESTION_GENERATOR_VERSION = "distance-guided-visible-v2";
 export const BOUNDARY_GENERATOR_VERSION = "uniform-boundary-grid-v1";
 
 const CELL_SAMPLE_SIZE = 5;
 const BOUNDARY_SEARCH_STEPS = 40;
 export const MAX_CELL_DRAWS = 200_000;
 
-/** Uses the same full-quality iteration schedule as the renderer. */
+/** Fixed iteration schedule for the historical boundary-grid baseline. */
 export function iterationsForMagnification(magnification: number) {
-  return fullQualityIterationsForZoom(magnification);
+  const logZoom=Math.max(0,Math.log10(magnification));
+  return Math.min(5000,Math.max(500,Math.round(500+200*logZoom+140*logZoom**2)));
 }
 
 export function escapedWithin(

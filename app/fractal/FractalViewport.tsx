@@ -24,7 +24,7 @@ import {
 
 export type FractalViewportHandle = {
   reset: () => void;
-  focus: (centerRe: number, centerIm: number, zoom: number) => void;
+  focus: (centerRe: number, centerIm: number, zoom: number, centerReLow?: number, centerImLow?: number) => void;
 };
 
 type FractalViewportProps = {
@@ -71,8 +71,8 @@ export const FractalViewport = forwardRef<
 
   useImperativeHandle(ref, () => ({
     reset: () => rendererRef.current?.reset(),
-    focus: (centerRe, centerIm, zoom) =>
-      rendererRef.current?.focus(centerRe, centerIm, zoom),
+    focus: (centerRe, centerIm, zoom, centerReLow, centerImLow) =>
+      rendererRef.current?.focus(centerRe, centerIm, zoom, centerReLow, centerImLow),
   }));
 
   useEffect(() => {
@@ -85,6 +85,7 @@ export const FractalViewport = forwardRef<
         interaction,
         zoomLimits,
         paletteId: paletteIdRef.current,
+        onError: cause => setError(cause.message),
         onViewChange: (snapshot) => {
           const locked = fixedCenterRef.current;
           const correction = locked
@@ -95,6 +96,8 @@ export const FractalViewport = forwardRef<
               correction.centerRe,
               correction.centerIm,
               correction.zoom,
+              correction.centerReLow,
+              correction.centerImLow,
             );
             return;
           }

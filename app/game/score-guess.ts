@@ -8,6 +8,7 @@ import {
   mandelbrotOverviewDiagonal,
 } from "../fractal/mandelbrot-domain";
 import { SCORE_CONFIG, SCORE_CONFIG_RATIOS } from "./score-config";
+import { ddNumber, ddSubtract } from "../fractal/double-double";
 
 export const MAX_ROUND_SCORE = 5000;
 
@@ -88,8 +89,8 @@ export function scoreLabGuess(
   }
 
   const coordinateDistance = Math.hypot(
-    guess.re - answer.re,
-    guess.im - answer.im,
+    ddNumber(ddSubtract([guess.re, guess.reLow ?? 0], [answer.re, answer.reLow ?? 0])),
+    ddNumber(ddSubtract([guess.im, guess.imLow ?? 0], [answer.im, answer.imLow ?? 0])),
   );
   const overviewDiagonal = mandelbrotOverviewDiagonal();
   const mapRelativeDistance = coordinateDistance / overviewDiagonal;

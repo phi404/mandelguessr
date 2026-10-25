@@ -1,4 +1,5 @@
 {
   "extends": "./tsconfig.json",
+  "compilerOptions": { "target": "ES2020" },
   "include": ["app/**/*.ts", "app/**/*.tsx", "vite.config.ts"]
 }

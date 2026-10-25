@@ -4,7 +4,7 @@ import { MandelbrotImageRenderer } from "../fractal/mandelbrot-render";
 import type { Camera } from "../fractal/types";
 import { calibrateSceneThreshold, sceneColorVariance, type CalibrationMeasurement } from "./scene-quality";
 
-export const SCENE_CALIBRATION_VERSION = "dataset-b1-visible-frame-v1";
+export const SCENE_CALIBRATION_VERSION = "dataset-b1-visible-frame-v2";
 // Reuse the Lab's 192px preview budget, with the actual game aspect and full
 // iteration schedule. Resolution is a resource setting, not a scene weighting.
 export const SCENE_ANALYSIS_WIDTH = 192;
