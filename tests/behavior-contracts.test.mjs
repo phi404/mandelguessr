@@ -87,7 +87,7 @@ function fakeWebGlContext() {
   };
 }
 
-async function withRenderer(options, run) {
+async function withRenderer(options, run, environment = {}) {
   const previous = {
     window: globalThis.window,
     ResizeObserver: globalThis.ResizeObserver,
@@ -118,6 +118,7 @@ async function withRenderer(options, run) {
     setTimeout: () => 1,
     clearTimeout() {},
     devicePixelRatio: 1,
+    ...environment,
   };
   globalThis.ResizeObserver = class {
     observe() {}
@@ -1102,4 +1103,52 @@ test('wheel units preserve the cursor anchor and limit each event to a small zoo
     wheel(-1,0);
     assert.ok(3.6/renderer.camera.viewportWidth>1 && 3.6/renderer.camera.viewportWidth<1.001);
   });
+});
+
+
+test("direct double-single rendering keeps the full desktop resolution at rest", async () => {
+  await withRenderer({}, ({ renderer, canvas }) => {
+    canvas.clientWidth = 1280;
+    canvas.clientHeight = 720;
+    for (const zoom of [1, 100, 1000, 10000]) {
+      renderer.focus(-0.75, 0.125, zoom);
+      renderer.render("full");
+      assert.equal(canvas.width, 2560);
+      assert.equal(canvas.height, 1440);
+    }
+    renderer.render("interactive");
+    assert.ok(canvas.width * canvas.height < 122_000);
+    renderer.focus(-0.75, 0.125, 1e12);
+    renderer.resizeDrawingBuffer("full");
+    assert.ok(canvas.width * canvas.height < 702_000);
+    assert.equal(3.6 / renderer.camera.viewportWidth, 1e12);
+  }, { devicePixelRatio: 2 });
+});
+
+test("touch devices clamp initial views and zoom gestures before perturbation", async () => {
+  await withRenderer({
+    initialCamera: { centerRe: -0.75, centerIm: 0.125, viewportWidth: 3.6 / 1e20 },
+    zoomLimits: { min: 0.7, max: 1e20 },
+  }, ({ renderer, canvas, rect }) => {
+    assert.equal(3.6 / renderer.camera.viewportWidth, 10000);
+    renderer.focus(-0.75, 0.125, 1e20);
+    renderer.handleWheel({
+      clientX: rect.left + 200, clientY: rect.top + 100,
+      deltaMode: 0, deltaY: -120, preventDefault() {},
+    });
+    assert.equal(3.6 / renderer.camera.viewportWidth, 10000);
+    renderer.render("full");
+    assert.equal(canvas.dataset.precision, "double-single");
+    assert.equal(renderer.progressive, null);
+    assert.equal(renderer.references.worker, null);
+    assert.ok(canvas.width * canvas.height < 702_000);
+    renderer.focus(-0.75, 0.125, 1);
+    renderer.render("full");
+    assert.ok(canvas.width * canvas.height < 702_000);
+    canvas.clientWidth = 100;
+    canvas.clientHeight = 100;
+    renderer.resizeDrawingBuffer("full");
+    assert.equal(canvas.width, 200);
+    assert.equal(canvas.height, 200);
+  }, { devicePixelRatio: 3, matchMedia: () => ({ matches: true }) });
 });

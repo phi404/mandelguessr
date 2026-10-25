@@ -10,7 +10,7 @@ import {
 import { MandelbrotWebGLPipeline, shouldUseCompensatedArithmetic } from "./MandelbrotWebGLPipeline";
 import { ProgressiveMandelbrotPipeline } from "./ProgressiveMandelbrotPipeline";
 import { ReferenceOrbitClient } from "./ReferenceOrbitClient";
-import { shouldUsePerturbation } from "./reference-orbit";
+import { PERTURBATION_ZOOM, shouldUsePerturbation } from "./reference-orbit";
 import {
   cameraForAnchoredViewportWidth,
   clampViewportWidth,
@@ -55,6 +55,12 @@ const PREVIEW_RESOLUTION_SCALE = 0.72;
 const INTERACTIVE_PIXEL_BUDGET = 1_100_000;
 const PREVIEW_PIXEL_BUDGET = 2_600_000;
 const FULL_PIXEL_BUDGET = 5_500_000;
+const COMPACT_PIXEL_BUDGETS = {
+  interactive: 120_000,
+  preview: 320_000,
+  full: 700_000,
+};
+const TOUCH_MAX_DEVICE_PIXEL_RATIO = 2;
 const PREVIEW_DELAY_MS = 70;
 const FULL_DELAY_MS = 240;
 
@@ -68,6 +74,7 @@ export class WebGLMandelbrotRenderer {
   private readonly initialCamera: Camera;
   private readonly interaction: ViewportInteraction;
   private readonly zoomLimits: ZoomLimits;
+  private readonly touchPrimary: boolean;
   private readonly onViewChange?: (snapshot: ViewSnapshot) => void;
   private readonly onSelect?: (coordinate: ComplexCoordinate) => void;
 
@@ -91,7 +98,12 @@ export class WebGLMandelbrotRenderer {
 
   constructor(canvas: HTMLCanvasElement, options: RendererOptions = {}) {
     this.canvas = canvas;
-    this.zoomLimits = normalizeZoomLimits(options.zoomLimits);
+    this.touchPrimary = window.matchMedia?.("(pointer: coarse)").matches ?? false;
+    const requestedLimits = normalizeZoomLimits(options.zoomLimits);
+    const maxZoom = this.touchPrimary
+      ? Math.min(requestedLimits.max, PERTURBATION_ZOOM)
+      : requestedLimits.max;
+    this.zoomLimits = { min: Math.min(requestedLimits.min, maxZoom), max: maxZoom };
     this.initialCamera = {
       ...(options.initialCamera ?? INITIAL_CAMERA),
       viewportWidth: clampViewportWidth(
@@ -529,15 +541,19 @@ export class WebGLMandelbrotRenderer {
       : quality === "preview"
         ? PREVIEW_RESOLUTION_SCALE
         : 1;
-    const deep = shouldUseCompensatedArithmetic(viewportWidthToZoom(this.camera.viewportWidth));
-    const pixelBudget = deep ? (quality === "interactive" ? 120_000 : quality === "preview" ? 320_000 : 700_000) : quality === "interactive"
+    const zoom = viewportWidthToZoom(this.camera.viewportWidth);
+    // Keep full resolution for direct rendering; only expensive deep zooms
+    // and touch devices retain the smaller drawing buffer.
+    const compact = this.touchPrimary || shouldUsePerturbation(zoom) ||
+      (quality !== "full" && shouldUseCompensatedArithmetic(zoom));
+    const pixelBudget = compact ? COMPACT_PIXEL_BUDGETS[quality] : quality === "interactive"
       ? INTERACTIVE_PIXEL_BUDGET
       : quality === "preview"
         ? PREVIEW_PIXEL_BUDGET
         : FULL_PIXEL_BUDGET;
     const devicePixelRatio = Math.min(
       Math.max(window.devicePixelRatio || 1, 1),
-      MAX_DEVICE_PIXEL_RATIO,
+      this.touchPrimary ? TOUCH_MAX_DEVICE_PIXEL_RATIO : MAX_DEVICE_PIXEL_RATIO,
     );
     const requestedPixelRatio = devicePixelRatio * resolutionScale;
     const requestedWidth = Math.max(
