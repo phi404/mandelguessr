@@ -1,3 +1,4 @@
+import { formatZoom } from "./formatting";
 import type { ReactNode } from "react";
 import { useLanguage } from "../i18n/LanguageProvider";
 import { FractalViewport } from "../fractal/FractalViewport";
@@ -109,7 +110,7 @@ export function NewGameScreen({
         <form className="settings-card game-rules-card" onSubmit={(event) => { event.preventDefault(); onStart(); }}>
           <header className="setup-title"><span className="setup-symbol"><UiIcon name="settings" /></span><h1>{t("gameSettings")}</h1></header>
           <section className="setting-group" aria-labelledby="magnification-label">
-            <header className="setting-heading"><h2 id="magnification-label" title={t("magnificationHelp")}><UiIcon name="zoom" />{t("magnification")}</h2><span>×{parsedMagnification || "—"}</span></header>
+            <header className="setting-heading"><h2 id="magnification-label" title={t("magnificationHelp")}><UiIcon name="zoom" />{t("magnification")}</h2><span>×{parsedMagnification > 0 ? formatZoom(parsedMagnification) : "—"}</span></header>
             <div className="preset-options target-zoom-presets" role="group" aria-label={t("magnificationPresets")}>
               {MAGNIFICATION_OPTIONS.map((value) => (
                 <button key={value} className="preset-button" type="button" aria-pressed={parsedMagnification === value} onClick={() => { onMagnificationInput(String(value)); onRulesChange({ magnification: value }); }}>×{value}</button>

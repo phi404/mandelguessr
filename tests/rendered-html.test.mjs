@@ -321,14 +321,14 @@ test("Generator Lab scoring follows h and tau definitions", async () => {
   );
 });
 
-test("Renderer Spec v2 preserves the official smooth-index pipeline", async () => {
+test("Renderer Spec v3 preserves the official smooth-index pipeline", async () => {
   const domain = await importTypeScriptModule(
     "../app/fractal/mandelbrot-domain.ts",
   );
   const { fastFragmentShaderSource, preciseFragmentShaderSource } =
     await importTypeScriptModule("../app/fractal/mandelbrot-shaders.ts");
 
-  assert.equal(domain.MANDELBROT_RENDERER_SPEC_VERSION, "mandelbrot-renderer-v2");
+  assert.equal(domain.MANDELBROT_RENDERER_SPEC_VERSION, "mandelbrot-renderer-v3");
   assert.equal(domain.MANDELBROT_POWER, 2);
   assert.equal(domain.MANDELBROT_FORMULA_BAILOUT_SQUARED, 10_000);
   assert.equal(domain.MANDELBROT_SMOOTH_BAILOUT, 128);
@@ -572,7 +572,7 @@ test("result sharing uses one plain-text formatter and the home URL", async () =
 21,347 / 25,000
 AVG 4,269
 
-×1000 · 5 ROUNDS
+×1,000 · 5 ROUNDS
 PAN OFF · ZOOM ON
 
 #MandelGuessr
@@ -588,7 +588,7 @@ https://phi404.github.io/mandelguessr/`);
     homeUrl: "https://mandelguessr.test/",
   });
   assert.match(singleRound, /4,872 \/ 5,000/);
-  assert.match(singleRound, /×1000 · 1 ROUND/);
+  assert.match(singleRound, /×1,000 · 1 ROUND/);
   assert.doesNotMatch(singleRound, /AVG/);
 });
 

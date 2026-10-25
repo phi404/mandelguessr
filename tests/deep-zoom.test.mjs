@@ -79,3 +79,10 @@ test('real-axis interior shortcut respects sub-double differences across the lef
   assert.equal(orbit.repairOrbit(camera,1e-23,0,32768).iteration,0);
   assert.ok(orbit.repairOrbit(camera,-1e-23,0,32768).iteration>0);
 });
+
+
+test('perturbation starts beyond 10,000 with stable floating-point boundary handling',()=>{
+  for(const zoom of [100,1000,10000,3.6/(3.6/10000)])assert.equal(orbit.shouldUsePerturbation(zoom),false);
+  assert.equal(orbit.shouldUsePerturbation(10001),true);
+  assert.equal(orbit.shouldUsePerturbation(1e20),true);
+});

@@ -51,6 +51,7 @@ function fakeWebGlContext() {
     deleteTexture() {},
     activeTexture() {},
     bindTexture() {},
+    bindFramebuffer() {},
     pixelStorei() {},
     texParameteri() {},
     texImage2D() {},
@@ -799,7 +800,7 @@ test("Mandelbrot image API is deterministic, versioned, sized, oriented, and val
     const metadata = createMandelbrotSampleMetadata(params);
     assert.deepEqual(metadata, {
       ...params,
-      rendererVersion: "mandelbrot-renderer-v2",
+      rendererVersion: "mandelbrot-renderer-v3",
       paletteVersion: "classic-v2-upr-serialized-phase",
     });
     const sample = generateMandelbrotSample(params);
@@ -933,7 +934,7 @@ test("dataset export keeps PNG, JSONL, manifest, cancellation, and one renderer 
         centerIm: 0.1,
         zoom: 30,
         ...config,
-        rendererVersion: "mandelbrot-renderer-v2",
+        rendererVersion: "mandelbrot-renderer-v3",
         paletteVersion: "classic-v2-upr-serialized-phase",
         source: generationSource,
       });
@@ -1059,3 +1060,46 @@ function fakeFileSystemFile(name, parentEntries) {
   };
   return file;
 }
+
+
+test('ordinary zoom uses direct double-single rendering without reference workers', async () => {
+  await withRenderer({ initialCamera:{centerRe:-0.75,centerIm:0.125,viewportWidth:3.6},zoomLimits:{min:0.7,max:1e20} },({renderer,canvas})=>{
+    for(const zoom of [100,1000,10000]) {
+      renderer.focus(-0.75,0.125,zoom);
+      renderer.render('full');
+      assert.equal(canvas.dataset.precision,'double-single');
+      assert.equal(canvas.dataset.renderStatus,'ready');
+      assert.equal(renderer.progressive,null);
+      assert.equal(renderer.references.worker,null);
+    }
+  });
+});
+
+test('wheel units preserve the cursor anchor and limit each event to a small zoom step', async () => {
+  await withRenderer({interaction:{pan:true,zoom:true,select:false}},({renderer,rect})=>{
+    const point={clientX:rect.left+623,clientY:rect.top+117};
+    const wheel=(deltaY,mode)=>{
+      let readMode=false;
+      renderer.handleWheel({...point,preventDefault(){},get deltaMode(){readMode=true;return mode;},get deltaY(){assert.ok(readMode);return deltaY;}});
+    };
+    const before=renderer.coordinateAt(point.clientX,point.clientY);
+    wheel(-120,0);
+    assertClose(3.6/renderer.camera.viewportWidth,1.1,'one pixel-mode notch');
+    const after=renderer.coordinateAt(point.clientX,point.clientY);
+    assertClose(after.re,before.re,'wheel anchor Re');
+    assertClose(after.im,before.im,'wheel anchor Im');
+    wheel(120,0);
+    assertClose(3.6/renderer.camera.viewportWidth,1,'reverse notch');
+    wheel(-48,0);
+    const pixelWidth=renderer.camera.viewportWidth;
+    renderer.reset();
+    wheel(-3,1);
+    assertClose(renderer.camera.viewportWidth,pixelWidth,'line and pixel units');
+    renderer.reset();
+    wheel(-1,2);
+    assertClose(3.6/renderer.camera.viewportWidth,1.1,'page-mode upper bound');
+    renderer.reset();
+    wheel(-1,0);
+    assert.ok(3.6/renderer.camera.viewportWidth>1 && 3.6/renderer.camera.viewportWidth<1.001);
+  });
+});

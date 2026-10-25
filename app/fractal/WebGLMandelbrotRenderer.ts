@@ -7,10 +7,10 @@ import {
   MANDELBROT_PALETTES,
   type MandelbrotPaletteId,
 } from "./mandelbrot-palettes";
-import { MandelbrotWebGLPipeline, MANDELBROT_PRECISE_RENDER_ZOOM } from "./MandelbrotWebGLPipeline";
+import { MandelbrotWebGLPipeline, shouldUseCompensatedArithmetic } from "./MandelbrotWebGLPipeline";
 import { ProgressiveMandelbrotPipeline } from "./ProgressiveMandelbrotPipeline";
 import { ReferenceOrbitClient } from "./ReferenceOrbitClient";
-import { PERTURBATION_ZOOM } from "./reference-orbit";
+import { shouldUsePerturbation } from "./reference-orbit";
 import {
   cameraForAnchoredViewportWidth,
   clampViewportWidth,
@@ -19,6 +19,7 @@ import {
   panCameraByScreenDelta,
   screenToComplex,
   viewportWidthToZoom,
+  wheelZoomFactor,
   zoomToViewportWidth,
 } from "./camera";
 import type {
@@ -330,9 +331,8 @@ export class WebGLMandelbrotRenderer {
     if (rect.width <= 0 || rect.height <= 0) return;
 
     const previousWidth = this.camera.viewportWidth;
-    const zoomFactor = Math.exp(
-      Math.max(-1, Math.min(1, event.deltaY * 0.0022)),
-    );
+    const deltaMode = event.deltaMode;
+    const zoomFactor = wheelZoomFactor(event.deltaY, deltaMode, rect.height);
     const nextWidth = clampViewportWidth(
       previousWidth * zoomFactor,
       this.zoomLimits,
@@ -419,17 +419,17 @@ export class WebGLMandelbrotRenderer {
     const fullIterations = fullQualityIterationsForZoom(zoom);
     const iterations = quality === "interactive" ? Math.min(fullIterations, 2048)
       : quality === "preview" ? Math.min(fullIterations, 8192) : fullIterations;
-    if (zoom >= MANDELBROT_PRECISE_RENDER_ZOOM) {
+    if (shouldUsePerturbation(zoom)) {
       const generation = this.renderGeneration;
       const camera = { ...this.camera };
       const params = { ...camera, pixelWidth: canvas.width, pixelHeight: canvas.height,
         paletteId: this.paletteId, maxIterations: iterations };
-      this.canvas.dataset.precision = zoom >= PERTURBATION_ZOOM ? "perturbation" : "double-single";
+      this.canvas.dataset.precision = "perturbation";
       this.canvas.dataset.iterations = String(iterations);
       this.canvas.dataset.zoom = String(zoom);
       this.canvas.dataset.renderStatus = "rendering";
       this.onViewChange?.({ ...camera, zoom, iterations, pixelWidth: canvas.width, pixelHeight: canvas.height,
-        precision: zoom >= PERTURBATION_ZOOM ? "perturbation" : "double-single", quality,
+        precision: "perturbation", quality,
         rendererSpecVersion: MANDELBROT_RENDERER_SPEC_VERSION, paletteId: this.paletteId,
         paletteVersion: MANDELBROT_PALETTES[this.paletteId].version });
       void (async () => {
@@ -437,7 +437,7 @@ export class WebGLMandelbrotRenderer {
           this.progressive ??= new ProgressiveMandelbrotPipeline(gl, this.pipeline);
           this.progressive.present(camera);
           const [reference] = await Promise.all([
-            zoom >= PERTURBATION_ZOOM ? this.references.reference(camera, fullIterations) : Promise.resolve(null),
+            this.references.reference(camera, fullIterations),
             this.progressive.ready,
           ]);
           if (generation !== this.renderGeneration) return;
@@ -472,6 +472,7 @@ export class WebGLMandelbrotRenderer {
     this.canvas.dataset.iterations = String(iterations);
     this.canvas.dataset.zoom = String(zoom);
     this.canvas.dataset.renderStatus = "ready";
+    delete this.canvas.dataset.repairs;
 
     this.onViewChange?.({
       ...this.camera,
@@ -528,7 +529,7 @@ export class WebGLMandelbrotRenderer {
       : quality === "preview"
         ? PREVIEW_RESOLUTION_SCALE
         : 1;
-    const deep = viewportWidthToZoom(this.camera.viewportWidth) >= MANDELBROT_PRECISE_RENDER_ZOOM;
+    const deep = shouldUseCompensatedArithmetic(viewportWidthToZoom(this.camera.viewportWidth));
     const pixelBudget = deep ? (quality === "interactive" ? 120_000 : quality === "preview" ? 320_000 : 700_000) : quality === "interactive"
       ? INTERACTIVE_PIXEL_BUDGET
       : quality === "preview"

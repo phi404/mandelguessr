@@ -87,8 +87,8 @@ export function PlayScreen({
   const target = targetOf(question);
   const questionMeta = questionView && gameRules.questionInspectAllowed
     && Math.abs(questionView.zoom - gameRules.magnification) > gameRules.magnification * 1e-4
-    ? `${t("targetCaption")} ×${gameRules.magnification} → ×${formatZoom(questionView.zoom)}`
-    : `${t("targetCaption")} ×${gameRules.magnification}`;
+    ? `${t("targetCaption")} ×${formatZoom(gameRules.magnification)} → ×${formatZoom(questionView.zoom)}`
+    : `${t("targetCaption")} ×${formatZoom(gameRules.magnification)}`;
 
   return (
     <main className="game-prototype play-scene screen-enter">

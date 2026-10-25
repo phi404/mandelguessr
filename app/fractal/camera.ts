@@ -132,3 +132,10 @@ export function fixedCenterCorrection(
     ...(fixedCenter.imLow !== undefined ? { centerImLow: fixedCenter.imLow } : snapshot.centerImLow !== undefined ? { centerImLow: 0 } : {}),
   };
 }
+
+/** Normalize wheel units and cap each event to a 10% change in magnification. */
+export function wheelZoomFactor(deltaY: number, deltaMode = 0, pageHeight = 800) {
+  const unit = deltaMode === 1 ? 16 : deltaMode === 2 ? pageHeight : 1;
+  const pixels = Math.max(-120, Math.min(120, deltaY * unit));
+  return Math.exp(pixels * Math.log(1.1) / 120);
+}

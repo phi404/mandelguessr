@@ -5,7 +5,7 @@ import {
 } from "./mandelbrot-shaders";
 import { viewportHeight, viewportWidthToZoom } from "./camera";
 import { iterationShaderSource } from "./progressive-shaders";
-import { buildReferenceOrbit, PERTURBATION_ZOOM, referenceOffset, REFERENCE_TEXTURE_WIDTH, type ReferenceOrbit } from "./reference-orbit";
+import { buildReferenceOrbit, shouldUsePerturbation, referenceOffset, REFERENCE_TEXTURE_WIDTH, type ReferenceOrbit } from "./reference-orbit";
 import {
   DEFAULT_MANDELBROT_PALETTE_ID,
   MANDELBROT_PALETTES,
@@ -13,6 +13,10 @@ import {
 } from "./mandelbrot-palettes";
 
 export const MANDELBROT_PRECISE_RENDER_ZOOM = 100;
+
+export function shouldUseCompensatedArithmetic(zoom: number) {
+  return zoom >= MANDELBROT_PRECISE_RENDER_ZOOM * (1 - 8 * Number.EPSILON);
+}
 
 export type MandelbrotPipelineRenderParams = {
   centerRe: number;
@@ -100,11 +104,11 @@ export class MandelbrotWebGLPipeline {
       width: params.pixelWidth,
       height: params.pixelHeight,
     });
-    const usePrecisePipeline = zoom >= MANDELBROT_PRECISE_RENDER_ZOOM;
+    const usePrecisePipeline = shouldUseCompensatedArithmetic(zoom);
 
     gl.viewport(0, 0, params.pixelWidth, params.pixelHeight);
 
-    if (zoom >= PERTURBATION_ZOOM) {
+    if (shouldUsePerturbation(zoom)) {
       const camera = { ...params };
       if (!this.reference || this.reference.camera.centerRe !== params.centerRe ||
           this.reference.camera.centerIm !== params.centerIm ||

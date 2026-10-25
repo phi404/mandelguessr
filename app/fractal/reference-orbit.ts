@@ -2,7 +2,12 @@ import type { Camera } from "./types";
 import { ddAdd, ddMultiply, ddNumber, ddSubtract, type DoubleDouble } from "./double-double";
 import { buildBilinearApproximation, type BilinearApproximation } from "./bilinear-approximation";
 
-export const PERTURBATION_ZOOM = 1000;
+export const PERTURBATION_ZOOM = 10_000;
+
+export function shouldUsePerturbation(zoom: number) {
+  // A width/zoom round trip must not select the expensive path at exactly 10,000.
+  return zoom > PERTURBATION_ZOOM * (1 + 8 * Number.EPSILON);
+}
 export const REFERENCE_TEXTURE_WIDTH = 1024;
 
 export type ReferenceOrbit = {

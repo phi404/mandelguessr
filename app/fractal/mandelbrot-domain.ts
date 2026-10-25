@@ -1,7 +1,7 @@
 export const MANDELBROT_VIEW_ASPECT_RATIO = 1.6;
 
 /** Any change to these formula/color-index constants requires a new spec. */
-export const MANDELBROT_RENDERER_SPEC_VERSION = "mandelbrot-renderer-v2";
+export const MANDELBROT_RENDERER_SPEC_VERSION = "mandelbrot-renderer-v3";
 export const MANDELBROT_POWER = 2;
 export const MANDELBROT_FORMULA_BAILOUT_SQUARED = 10_000;
 export const MANDELBROT_SMOOTH_BAILOUT = 128;

@@ -43,5 +43,5 @@ export function formatZoom(zoom: number) {
     const [coefficient, exponent] = zoom.toExponential(2).split("e");
     return `${Number(coefficient)} × 10${superscript(Number(exponent))}`;
   }
-  return zoom.toLocaleString(undefined, { maximumFractionDigits: 1 });
+  return Math.max(1, Math.round(zoom)).toLocaleString(undefined, { maximumFractionDigits: 0 });
 }

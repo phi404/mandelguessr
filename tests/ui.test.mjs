@@ -102,14 +102,20 @@ test("settings keep native language names and the guide introduces shape before 
   }
 });
 
-test("exploration coordinates use the current view center at high zoom", () => {
+test("exploration shows precise coordinates and rounded integer zoom labels", () => {
   const html = render(ExploreScreen, "en", {
-    ...common, viewportRef: { current: null }, view: { centerRe: -0.743643887, centerIm: 0.131825904, zoom: 10000 },
+    ...common, viewportRef: { current: null }, view: { centerRe: -0.743643887, centerIm: 0.131825904, zoom: 10000.4 },
     zoomLimits: { min: 0.7, max: 40000 }, onViewChange: noop,
   });
   assert.match(html, /Coordinates at the center of the view/);
   assert.match(html, /-0\.7436438870 \+ 0\.1318259040i/);
   assert.doesNotMatch(html, /class="explore-center"|>Center</);
+  assert.match(html, /<strong>×10,000<\/strong>/);
+  const exponential = render(ExploreScreen, "en", {
+    ...common, viewportRef: { current: null }, view: { centerRe: 0, centerIm: 0, zoom: 1.25e8 },
+    zoomLimits: { min: 0.7, max: 1e20 }, onViewChange: noop,
+  });
+  assert.match(exponential, /<strong>×1\.25 × 10⁸<\/strong>/);
 });
 
 test("language choice survives reload and tolerates unavailable or invalid storage", () => {
